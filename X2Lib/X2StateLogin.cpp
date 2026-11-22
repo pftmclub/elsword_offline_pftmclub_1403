@@ -181,9 +181,9 @@ m_pDLGLoginFront( NULL )
 	g_pKTDXApp->SkipFrame();
 
 //{{ kimhc // 2010.5.11 // 사내에서 자동 로그인 할 수 있는 기능
-#ifdef	AUTO_LOGIN_IN_HOUSE
+//#ifdef	AUTO_LOGIN_IN_HOUSE
 	ReadIDAndPassword();
-#endif	AUTO_LOGIN_IN_HOUSE
+// #endif	AUTO_LOGIN_IN_HOUSE
 //}} kimhc // 2010.5.11 // 사내에서 자동 로그인 할 수 있는 기능
 
 #ifdef LOGIN_KEYBOARD_SECURITY
@@ -814,7 +814,7 @@ void CX2StateLogin::RetrieveUserIDnPassword()
 
 }
 //{{ kimhc // 2010.5.11 // 사내에서 자동 로그인 할 수 있는 기능
-#ifdef AUTO_LOGIN_IN_HOUSE
+//#ifdef AUTO_LOGIN_IN_HOUSE
 void CX2StateLogin::ReadIDAndPassword()
 {
 	const wstring wstrFileName( L"LoginKey.lua" );
@@ -882,7 +882,7 @@ void CX2StateLogin::ReadIDAndPassword()
 		}
 	}
 }
-#endif AUTO_LOGIN_IN_HOUSE
+//#endif AUTO_LOGIN_IN_HOUSE
 //}} kimhc // 2010.5.11 // 사내에서 자동 로그인 할 수 있는 기능
 
 #ifdef NEW_LOGIN_PROCESS

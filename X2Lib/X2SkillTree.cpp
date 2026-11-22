@@ -13,15 +13,21 @@ using namespace YExcel;
 	switch ( eAccelSkillID_ )
 	{
 #ifdef UPGRADE_SKILL_SYSTEM_2013 //JHKang
+	case CX2SkillTree::SI_SA_COMMON_POWER_ACCEL:
 	case CX2SkillTree::SI_SA_COMMON_AURA_POWER_ACCEL:
+	case CX2SkillTree::SI_SA_COMMON_POWER_ADRENALIN:
 		return L"BuffAttackCore";
 		break;
 
+	case CX2SkillTree::SI_SA_COMMON_MAGIC_ACCEL:
 	case CX2SkillTree::SI_SA_COMMON_AURA_MAGIC_ACCEL:
+	case CX2SkillTree::SI_SA_COMMON_MAGIC_ADRENALIN:
 		return L"BuffMagickCore";
 		break;
 
+	case CX2SkillTree::SI_SA_COMMON_SHIELD_ACCEL:
 	case CX2SkillTree::SI_SA_COMMON_AURA_SHIELD_ACCEL:
+	case CX2SkillTree::SI_SA_COMMON_SHIELD_ADRENALIN:
 		return L"ShieldBuffCore";
 		break;
 #else //UPGRADE_SKILL_SYSTEM_2013

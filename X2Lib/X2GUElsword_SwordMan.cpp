@@ -637,7 +637,7 @@ void CX2GUElsword_SwordMan::DamageReact( CX2DamageManager::DamageData* pDamageDa
 		GetNowHp() > 0.f &&
 		m_FrameDataNow.unitCondition.bFootOnLine == true )
 	{
-		const int DAMAGE_REDUCE_PERCENT_DESTRUCTION_RAGE = 100;
+		const int DAMAGE_REDUCE_PERCENT_DESTRUCTION_RAGE = 70;
 		SetDamageReducePercent( GetDamageReducePercent() + DAMAGE_REDUCE_PERCENT_DESTRUCTION_RAGE );
 		CX2GUUser::DamageReact( pDamageData );
 		SetDamageReducePercent( GetDamageReducePercent() - DAMAGE_REDUCE_PERCENT_DESTRUCTION_RAGE );
@@ -654,14 +654,14 @@ void CX2GUElsword_SwordMan::DamageReact( CX2DamageManager::DamageData* pDamageDa
 		else
 		{
 			SetHoldStateID( USI_DAMAGE_AIR_FALL );
-			DoStateDestructionRage();
+			CX2GUUser::DamageReactStateChange( pDamageData );
 		}
 	}
 	else if( IsSuperArmor() )
 	{
-		SetDamageReducePercent( GetDamageReducePercent() );
+		SetDamageReducePercent( GetDamageReducePercent() + 100 );
 		CX2GUUser::DamageReact( pDamageData );
-		SetDamageReducePercent( GetDamageReducePercent() );
+		SetDamageReducePercent( GetDamageReducePercent() - 100 );
 
 #ifdef UPGRADE_SKILL_SYSTEM_2013 //김창한
 		DamageReactStateChange( pDamageData, ESSI_REVENGE_ATTACK );
@@ -679,6 +679,13 @@ void CX2GUElsword_SwordMan::DamageReact( CX2DamageManager::DamageData* pDamageDa
 #endif //UPGRADE_SKILL_SYSTEM_2013
 	}
 
+	if( true == IsDamagedReaction( pDamageData ) && m_OrgInputData.pureX == true && DamageFlushMp_KeyX() == true  )
+	{		
+		DoStateDestructionRage();
+		
+		return;
+		
+	}
 	if(	IsMyUnit() == true &&
 		pDamageData->reActType != CX2DamageManager::RT_NO_DAMAGE &&
 		pDamageData->reActType != CX2DamageManager::RT_DUMMY_DAMAGE &&
@@ -722,6 +729,7 @@ void CX2GUElsword_SwordMan::DamageReact( CX2DamageManager::DamageData* pDamageDa
 
 	CX2GUUser::DamageReactStateChange( pDamageData,  iRevengeAttack, iAvoidance );
 }
+
 
 /*virtual*/ float CX2GUElsword_SwordMan::GetFinalDamageToBeChangedByActiveSkill( float fFinalDamage_ )
 {
@@ -780,6 +788,8 @@ void CX2GUElsword_SwordMan::ApplyBuffToHarshSlayer( const CX2DamageManager::Dama
 	}
 }
 #endif //UPGRADE_SKILL_SYSTEM_2013	
+
+
 
 void CX2GUElsword_SwordMan::Win()
 {
@@ -1071,6 +1081,7 @@ void CX2GUElsword_SwordMan::InitState()
 			stateData.stateID			= ESSI_DASH_COMBO_Z3a;
 			m_LuaManager.MakeTableReference( "ESSI_KNIGHT_DASH_COMBO_Z3a", stateData.stateID );
 			stateData.StateStartFuture	= SET_CB_FUNC( CX2GUElsword_SwordMan, ESSI_KNIGHT_DASH_COMBO_Z3a_StateStartFuture );
+			stateData.OnFrameMove		= SET_CB_FUNC( CX2GUElsword_SwordMan, Jump_Cancel_FrameMoves );
 			stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, ESSI_KNIGHT_DASH_COMBO_Z3a_EventProcess );
 			m_StateList[stateData.stateID] = stateData;
 		} break;
@@ -1159,6 +1170,7 @@ void CX2GUElsword_SwordMan::InitState()
 			stateData.Init();
 			stateData.stateID			= ESSI_DASH_JUMP_COMBO_X3;
 			m_LuaManager.MakeTableReference( "ESSI_KNIGHT_DASH_JUMP_COMBO_X3", stateData.stateID );
+			stateData.OnFrameMove		= SET_CB_FUNC( CX2GUElsword_SwordMan, Jump_Cancel_FrameMoves );
 			stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, ESSI_KNIGHT_DASH_JUMP_COMBO_X3_EventProcess );
 			m_StateList[stateData.stateID] = stateData;
 
@@ -1387,10 +1399,25 @@ void CX2GUElsword_SwordMan::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
+	stateData.stateID			= USI_JUMP_UP_RECOVERY;
+	m_LuaManager.MakeTableReference( "ESSI_JUMP_UP_RECOVERY", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser,			JumpFrameMoveFuture );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, JumpFrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, JumpUpEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
 	stateData.stateID			= USI_JUMP_DOWN;
 	m_LuaManager.MakeTableReference( "ESSI_JUMP_DOWN", stateData.stateID );
 	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser,			JumpFrameMoveFuture );
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, JumpDownEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
+	stateData.stateID			= USI_CAN_NOT_ATTACK_JUMP_DOWN;
+	m_LuaManager.MakeTableReference( "ESSI_JUMP_DOWN", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, USI_CAN_NOT_ATTACK_JUMP_DOWN_EventProcess );	
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -1573,6 +1600,13 @@ void CX2GUElsword_SwordMan::InitStateCommon()
 	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DamageRevengeStart );
 	stateData.OnCameraMove		= SET_CB_FUNC( CX2GUUser, DamageRevengeCameraMove );
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageRevengeEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
+	stateData.stateID			= USI_CANCEL_MODE;
+	m_LuaManager.MakeTableReference( "ESSI_COMBO_CANCEL", stateData.stateID );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUElsword_SwordMan, COMMON_BUFF_FrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, COMMON_BUFF_EventProcess );	
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -3819,7 +3853,7 @@ void CX2GUElsword_SwordMan::InitStateCommon()
 				stateData.stateID			= ESSI_A_ELK_ROLLING_SMASH_LANDING;
 				m_LuaManager.MakeTableReference( "ESSI_A_ELK_ROLLING_SMASH_LANDING", stateData.stateID );
 #ifdef CONVERSION_VS
-				stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, GenericSpecialActiveSkillEventProcess );	
+				stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, GenericSpecialActiveSkillEventProcess );	
 #else CONVERSION_VS
 				stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, GenericSpecialActiveSkillEventProcess );	
 #endif CONVERSION_VS
@@ -3829,7 +3863,7 @@ void CX2GUElsword_SwordMan::InitStateCommon()
 				stateData.stateID			= ESSI_A_ELK_ROLLING_SMASH_LANDING_HYPER;
 				m_LuaManager.MakeTableReference( "ESSI_A_ELK_ROLLING_SMASH_LANDING_HYPER", stateData.stateID );
 #ifdef CONVERSION_VS
-				stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, GenericSpecialActiveSkillEventProcess );	
+				stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, GenericSpecialActiveSkillEventProcess );	
 #else CONVERSION_VS
 				stateData.OnEventProcess	= SET_CB_FUNC( CX2GUElsword_SwordMan, GenericSpecialActiveSkillEventProcess );	
 #endif CONVERSION_VS
@@ -5693,9 +5727,14 @@ void CX2GUElsword_SwordMan::JumpReadyEventProcess()
 		StateChange( ESSI_JUMP_ATTACK_X );
 		m_PhysicParam.nowSpeed.y = GetJumpSpeed();
 		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
-	}
+	}	
 	else if( SpecialAttackEventProcess() == true )
 	{
+	}
+	else if( m_InputData.oneDown == true )
+	{
+		m_fCanNotJumpTime = 0.2f;
+		StateChange( USI_JUMP_DOWN );		
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true
 		|| m_InputData.pureRight == true
@@ -5743,6 +5782,36 @@ void CX2GUElsword_SwordMan::JumpUpEventProcess()
 	CommonEventProcess();
 }
 
+void CX2GUElsword_SwordMan::USI_CAN_NOT_ATTACK_JUMP_DOWN_EventProcess()
+{	
+	if ( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_JUMP_LANDING );
+	}
+	else if( (m_InputData.pureDoubleLeft == true || m_InputData.pureDoubleRight == true ) &&
+		GetEnableDash() == true )
+	{
+		StateChange( USI_DASH_JUMP );
+	}
+	else if( true == m_FrameDataFuture.unitCondition.bFootOnWall && 
+		( true == m_InputData.oneUp || true == m_InputData.oneDoubleUp ) )
+	{
+		m_bDisableGravity = true;
+		StateChange( ESSI_WALL_LANDING );
+	}
+	else if ( 0.0f <= m_PhysicParam.nowSpeed.y )
+	{
+		StateChange( USI_JUMP_UP );
+	}
+#ifdef RIDING_SYSTEM
+	else if ( true == GetRidingOn() )
+	{
+		StateChange( USI_RIDING_ON );
+	}
+#endif //RIDING_SYSTEM
+
+	CommonEventProcess();
+}
 void CX2GUElsword_SwordMan::JumpDownEventProcess()
 {
 	if( true == IsOnSomethingFuture() )
@@ -6082,7 +6151,7 @@ void CX2GUElsword_SwordMan::DashJumpEventProcess()
 		}
 		else if( m_bDownForce == true )
 		{
-			StateChange( ESSI_DASH_JUMP_POWER_LANDING );
+			StateChange( USI_DASH );
 			m_bDownForce = false;
 		}
 		else
@@ -6362,6 +6431,170 @@ void CX2GUElsword_SwordMan::HyperModeFrameMove()
 //	}
 //	CommonEventProcess();
 //}
+
+void CX2GUElsword_SwordMan::DamageAirSmallEventProcess()
+{
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_JUMP_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.2f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+
+	CommonEventProcess();
+}
+
+/** @function : DamageAirDownEventProcess
+	@brief : 공중에 다운 타격을 받았을 때의 EventProcess
+*/
+void CX2GUElsword_SwordMan::DamageAirDownEventProcess()
+{
+#ifdef LINEMAP_FAST_WIND_TEST
+	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+#endif LINEMAP_FAST_WIND_TEST
+
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	CommonEventProcess();
+}
+
+/** @function : DamageAirDownInvincibleEventProcess
+	@brief : 공중에 다운 타격을 받았을 때 무적 상태의 EventProcess
+*/
+void CX2GUElsword_SwordMan::DamageAirDownInvincibleEventProcess()
+{
+#ifdef LINEMAP_FAST_WIND_TEST
+	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+#endif LINEMAP_FAST_WIND_TEST
+
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	
+
+	CommonEventProcess();
+}
+
+
+
+
+/** @function : DamageAirFallEventProcess
+	@brief : UP Type의 공격에 의해 수직으로 올라갔다가 떨어지는 스테이트
+*/
+void CX2GUElsword_SwordMan::DamageAirFallEventProcess()
+{
+#ifdef LINEMAP_FAST_WIND_TEST
+	m_bEnableUpsideWind = false;
+#endif LINEMAP_FAST_WIND_TEST
+
+	if( 0.f < m_PhysicParam.nowSpeed.y )
+	{
+		StateChange( USI_DAMAGE_AIR_UP );
+	}
+	else if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.2f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+
+	CommonEventProcess();
+}
+
+/** @function : DamageAirUpEventProcess 
+	@brief : UP Type의 공격을 받은 상태의 EventProcess
+*/
+void CX2GUElsword_SwordMan::DamageAirUpEventProcess()
+{
+#ifdef LINEMAP_FAST_WIND_TEST
+	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+#endif LINEMAP_FAST_WIND_TEST
+
+	if( 0.f > m_PhysicParam.nowSpeed.y )
+	{
+		StateChange( USI_DAMAGE_AIR_FALL );
+	}
+	else if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.25f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+
+	CommonEventProcess();
+}
+
+/** @function : DamageAirFlyEventProcess
+	@brief : Fly Type의 공격을 받은 상태의 EventProcess
+*/
+void CX2GUElsword_SwordMan::DamageAirFlyEventProcess()
+{
+#ifdef LINEMAP_FAST_WIND_TEST
+	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+#endif LINEMAP_FAST_WIND_TEST
+
+	if( true == IsOnSomethingFuture() )
+	{
+		//{{ kimhc // 2010.7.12 // 여러명의 유저를 HOLD 할 수 있도록 함
+#ifdef	USER_HOLD_EX
+		if ( false == GetHold() )
+#endif	USER_HOLD_EX
+		//}} kimhc // 2010.7.12 // 여러명의 유저를 HOLD 할 수 있도록 함
+
+#ifdef TEST_GROUP_GRAP
+		if ( false == GetGrap() )
+#endif TEST_GROUP_GRAP
+
+		{
+#ifdef RIDING_SYSTEM
+			/// 탈것에 탑승중이라면, 탑승물의 스테이트로 변경한다.
+			if ( true == GetRidingOn() )
+				StateChange( USI_RIDING_DAMAGE_FRONT );
+			else
+#endif // RIDING_SYSTEM
+				StateChange( USI_DAMAGE_DOWN_FRONT );
+		}
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.25f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	
+	CommonEventProcess();
+}
 
 //ESSI_DAMAGE_SMALL_FRONT
 void CX2GUElsword_SwordMan::DamageSmallFrontEventProcess()
@@ -7033,12 +7266,12 @@ void CX2GUElsword_SwordMan::RevengeWaitEventProcess()
 	{	
 		StateChange( USI_WAIT );
 	}
-#ifdef BALANCE_PATCH_20110303
-	ELSE_IF_ARROW_ASDC_PRESSED_AFTER( 0.6f )
+#ifdef BALANCE_PATCH_20110303	
+#endif
+	ELSE_IF_ARROW_ASDC_PRESSED_AFTER( 0.4f )
 	{
 		StateChange( USI_WAIT );
 	}
-#endif
 	CommonEventProcess();
 }
 
@@ -7153,7 +7386,7 @@ void CX2GUElsword_SwordMan::RevengeAttackEventProcess()
 		else
 			StateChange( USI_WAIT );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -7376,7 +7609,15 @@ void CX2GUElsword_SwordMan::DestructionRageFrameMove()
 
 
 void CX2GUElsword_SwordMan::DoStateDestructionRage()
-{
+{	
+
+	StateChange( ESSI_DESTRUCTION_RAGE, true );
+	CX2GUUser::ForceDownAndDetonationProcess();
+	
+}
+
+void CX2GUElsword_SwordMan::DestructionRageStateStart()
+{	
 	if( IsMyUnit() == true )
 		SetWayOfSwordPoint( GetWayOfSwordPoint() + g_pData->GetDamageManager()->GetDestRageWSPGain() );
 	
@@ -7394,10 +7635,7 @@ void CX2GUElsword_SwordMan::DoStateDestructionRage()
 	CureExtraDamage( CX2DamageManager::EDT_Y_PRESSED );
 	CureExtraDamage( CX2DamageManager::EDT_PANIC );
 
-	m_fGroggyTime = 0.f;
-
-	StateChange( ESSI_DESTRUCTION_RAGE, false );
-
+	m_fGroggyTime = 0.f;	
 	D3DXVECTOR3 pos = m_FrameDataNow.syncData.position;
 	pos.y += 80.f;
 	g_pX2Game->GetMajorParticle()->CreateSequence( (CKTDGObject*) this,  L"MonsterAngryWind", pos);
@@ -7410,11 +7648,7 @@ void CX2GUElsword_SwordMan::DoStateDestructionRage()
 
 
 
-	UpDownCrashCamera( 30.0f, 0.4f );
-}
-
-void CX2GUElsword_SwordMan::DestructionRageStateStart()
-{
+	UpDownCrashCamera( 30.0f, 0.4f );	
 	CommonStateStart();
 }
 
@@ -7521,7 +7755,7 @@ void CX2GUElsword_SwordMan::ComboZ1EventProcess()
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		StateChange( USI_WAIT );
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 	}
 	CommonEventProcess();
 }
@@ -7591,7 +7825,7 @@ void CX2GUElsword_SwordMan::ComboZ2EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 		StateChange( USI_WAIT );
 	}
 
@@ -7608,7 +7842,7 @@ void CX2GUElsword_SwordMan::ComboZ3FrameMove()
 void CX2GUElsword_SwordMan::ComboZ3EventProcess()
 {
 	m_bReAttackZ1Right = m_FrameDataFuture.syncData.bIsRight;
-	m_fReAttackZ1Time = 0.2f;
+	//m_fReAttackZ1Time = 0.2f;
 
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 3 );
 
@@ -7728,7 +7962,7 @@ void CX2GUElsword_SwordMan::ComboZ4aEventProcess()
 	{	
 		StateChange( USI_WAIT );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -7798,7 +8032,7 @@ void CX2GUElsword_SwordMan::ComboX1EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.6f )
 		{
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -7901,7 +8135,7 @@ void CX2GUElsword_SwordMan::ComboX2EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.7f )
 		{
-			m_fCanNotAttackTime = 0.3f;
+			//m_fCanNotAttackTime = 0.3f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -7958,8 +8192,7 @@ void CX2GUElsword_SwordMan::ComboX3EventProcess()
 
 //ESSI_COMBO_X3a
 void CX2GUElsword_SwordMan::ComboX3aFrameMove()
-{
-
+{	
 	CommonFrameMove();
 }
 
@@ -7969,11 +8202,11 @@ void CX2GUElsword_SwordMan::ComboX3aEventProcess()
 	{
 		StateChange( USI_JUMP_DOWN );
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * 1.5f;
-	}
+	}	
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		StateChange( USI_WAIT );
-	}
+	}	
 	ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_ZXC
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.6f )
@@ -7981,8 +8214,7 @@ void CX2GUElsword_SwordMan::ComboX3aEventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
-
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -8040,7 +8272,7 @@ void CX2GUElsword_SwordMan::DashComboZ1EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -8242,7 +8474,7 @@ void CX2GUElsword_SwordMan::ESSI_KNIGHT_DASH_COMBO_Z3a_EventProcess()
 		}
 		else
 			StateChange( USI_WAIT );
-	}
+	}	
 	ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_C
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
@@ -8250,11 +8482,24 @@ void CX2GUElsword_SwordMan::ESSI_KNIGHT_DASH_COMBO_Z3a_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
+	JUMP_CANCEL
 
 	CommonEventProcess();
 }
 
 
+void CX2GUElsword_SwordMan::Jump_Cancel_FrameMoves()
+{
+	if( m_pXSkinAnim->GetNowAnimationTime() > 0.15f )
+	{
+		if( g_pData->GetDamageManager()->DamageCheck( &m_DamageData ) == true )
+		{
+			m_FrameDataNow.unitCondition.bHit		= true;
+		}
+	}
+
+	CommonFrameMove();
+}
 
 //ESSI_MAGIC_KNIGHT_DASH_COMBO_Z3a
 void CX2GUElsword_SwordMan::ESSI_MAGIC_KNIGHT_DASH_COMBO_Z3a_FrameMove()
@@ -8363,7 +8608,7 @@ void CX2GUElsword_SwordMan::DashAttackXStartFuture()
 }
 
 void CX2GUElsword_SwordMan::DashAttackXFrameMove()
-{
+{	
 	CommonFrameMove();
 }
 
@@ -8381,7 +8626,7 @@ void CX2GUElsword_SwordMan::DashAttackXEventProcess()
 			}
 			else
 				StateChange( USI_WAIT );
-		}
+		}		
 		ELSE_IF_STATE_CHANGE_ON_EX_( 0, 0.233f, 0.63f, 0.63f, m_InputData.oneX == true, ESSI_EIS_DASH_COMBO_XX )
 		ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_C
 		{
@@ -8390,6 +8635,7 @@ void CX2GUElsword_SwordMan::DashAttackXEventProcess()
 				StateChange( USI_WAIT );
 			}
 		}
+		JUMP_CANCEL
 	}
 	else
 	{
@@ -8402,14 +8648,15 @@ void CX2GUElsword_SwordMan::DashAttackXEventProcess()
 			}
 			else
 				StateChange( USI_WAIT );
-		}
+		}		
 		ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_ZXC
 		{
 			if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.6f )
 			{
 				StateChange( USI_WAIT );
 			}
-		}	
+		}
+		JUMP_CANCEL
 	}
 #else
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
@@ -8472,7 +8719,7 @@ void CX2GUElsword_SwordMan::JumpAttackZEventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -8521,7 +8768,7 @@ void CX2GUElsword_SwordMan::JumpAttackXEventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -8638,7 +8885,7 @@ void CX2GUElsword_SwordMan::DashJumpComboZ3EventProcess()
 			StateChange( USI_DASH_JUMP_LANDING );
 		}
 	}
-
+	SKILL_CANCEL_AFTER( 0.26 )
 	CommonEventProcess();
 }
 
@@ -8671,9 +8918,7 @@ void CX2GUElsword_SwordMan::DashJumpComboZ3LandingEventProcess()
 	{
 		StateChangeDashIfPossible();
 	}
-	else if( m_pXSkinAnimFuture->GetNowAnimationTime() > m_pXSkinAnimFuture->GetMaxAnimationTime() / 6.0f )
-	{
-		if( m_InputData.oneZ == true )
+	else if( m_InputData.oneZ == true )
 		{
 			StateChange( ESSI_COMBO_Z1 );
 		}
@@ -8706,9 +8951,8 @@ void CX2GUElsword_SwordMan::DashJumpComboZ3LandingEventProcess()
 		else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 		{
 			StateChange( USI_WAIT );
-		}
-	}
-
+		}	
+	SKILL_CANCEL_AFTER( 0.01f )
 	CommonEventProcess();
 }
 
@@ -9032,7 +9276,7 @@ void CX2GUElsword_SwordMan::ESSI_KNIGHT_DASH_JUMP_COMBO_X3_EventProcess()
 		{
 			StateChange( USI_WAIT );
 		}
-	}
+	}	
 	ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_ZXC
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.68f )
@@ -9040,7 +9284,7 @@ void CX2GUElsword_SwordMan::ESSI_KNIGHT_DASH_JUMP_COMBO_X3_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -10618,7 +10862,7 @@ void CX2GUElsword_SwordMan::ESSI_SI1_ES_AIR_SLASH_NEXT_EventProcess()
 			StateChange( USI_JUMP_DOWN );
 		else
 			StateChange( USI_WAIT );
-	}
+	}	
 	ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_ZXC
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.8f )
@@ -10626,6 +10870,7 @@ void CX2GUElsword_SwordMan::ESSI_SI1_ES_AIR_SLASH_NEXT_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -12847,11 +13092,15 @@ void CX2GUElsword_SwordMan::ESSI_SI3_ES_STORM_BLADE_HYPER_EventProcess()
 /*virtual*/ void CX2GUElsword_SwordMan::COMMON_BUFF_FrameMove()
 {
 
-#ifndef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
+#ifdef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
 	ChangeWorldColorByHyperMode();
 	ShowActiveSkillCutInAndLight( 0.004f, 0 );
 #endif // UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
 	
+	if( m_pXSkinAnim->EventTimerOneshot( 0.05f ) )
+	{		
+		ShowMinorParticleHyperModeChange();
+	}	
 #ifdef  X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
     if( m_pXSkinAnim->EventTimerOneshot( 0.83f ) )
 #else   X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
@@ -14141,7 +14390,7 @@ void CX2GUElsword_SwordMan::ESSI_ELK_XXXX_EventProcess()
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		StateChange( USI_WAIT );
-	}
+	}	
 	ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_ZXC
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 1.3f )
@@ -14149,7 +14398,7 @@ void CX2GUElsword_SwordMan::ESSI_ELK_XXXX_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -14268,7 +14517,7 @@ void CX2GUElsword_SwordMan::ESSI_ERS_XZ_EventProcess()
 }
 
 void CX2GUElsword_SwordMan::ESSI_ERS_XZZ_FrameMove()
-{
+{	
 #ifdef  X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
     if( m_pXSkinAnim->EventTimerOneshot( 0.01f ) )
 #else   X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
@@ -14331,6 +14580,13 @@ void CX2GUElsword_SwordMan::ESSI_ERS_XZZ_EventProcess()
 	{
 		StateChange( USI_JUMP_DOWN );
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * 1.5f;
+	}
+	else if( g_pData->GetDamageManager()->DamageCheck( &m_DamageData ) == true )
+	{
+		if( m_InputData.oneUp == true )
+		{
+		StateChange( USI_JUMP_READY );
+		}
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
@@ -14903,6 +15159,23 @@ void CX2GUElsword_SwordMan::ESSI_A_ELK_ROLLING_SMASH_End()
 
 }
 
+void CX2GUElsword_SwordMan::GenericSpecialActiveSkillEventProcess()
+{
+	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
+	{	
+		if( false == IsOnSomethingFuture() )
+		{
+			StateChange( USI_JUMP_DOWN );
+			m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * 1.5f;
+		}
+		else
+		{
+			StateChange( USI_WAIT );
+		}
+	}	
+	JUMP_CANCEL	
+	CommonEventProcess();
+}
 
 
 
@@ -15531,7 +15804,7 @@ void CX2GUElsword_SwordMan::ESSI_ETK_COMBO_ZZZ_FrameMove()
 }
 void CX2GUElsword_SwordMan::ESSI_ETK_COMBO_ZZZ_EventProcess()
 {
-	CANCEL_COMBO_ON_DIRECTION_CHANGE( 0 );
+	CANCEL_COMBO_ON_DIRECTION_CHANGE( 1 );
 
 	if( false == IsOnSomethingFuture() )
 	{
@@ -15838,6 +16111,7 @@ void CX2GUElsword_SwordMan::ESSI_ETK_COMBO_XXXZ_EventProcess()
 	{	
 		StateChange( USI_WAIT );
 	}
+	JUMP_CANCEL
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 
@@ -16414,6 +16688,7 @@ void CX2GUElsword_SwordMan::CompactCounterAttackEventProcess()
 			StateChange( USI_WAIT );
 	}
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
+	JUMP_CANCEL
 
 	CommonEventProcess();
 }
@@ -16557,6 +16832,7 @@ void CX2GUElsword_SwordMan::CompactCounterGuardAttackEventProcess()
 			StateChange( USI_WAIT );
 	}
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
+	JUMP_CANCEL
 
 	CommonEventProcess();
 }
@@ -18561,7 +18837,7 @@ void CX2GUElsword_SwordMan::ESSI_SI_A_ES_DEFENCE_END_EventProcess()
 	if( true == m_pXSkinAnimFuture->IsAnimationEnd() )
 	{
 		StateChange( USI_WAIT );
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 	}
 	else if( LOWER_BOUND_INPUT_TIME_TO_CANCEL < m_pXSkinAnimFuture->GetNowAnimationTime() )
 	{
@@ -19236,6 +19512,24 @@ void CX2GUElsword_SwordMan::ESSI_HA_EIS_Blade_Rain_EventProcess()
 
 #pragma endregion 블레이드 레인 : 궁극기
 #endif //FINALITY_SKILL_SYSTEM
+
+/*virtual*/ bool CX2GUElsword_SwordMan::DamageFlushMp_KeyX()
+{
+	// 기폭 : 모인 만큼 터지게 변경
+	if( GetGageData()->GetNowChargeMpForDetonation() >= 299.f )	
+	{
+#ifdef FIX_FORCE_DOWN_AND_DETONATION_BUG
+		GetGageData()->SetActivateDetonation( true, GetGageData()->GetNowChargeMpForDetonation() );
+#else
+		UpNowMp( GetGageData()->GetNowChargeMpForDetonation() * -1 );
+		GetGageData()->SetNowChargeMpForDetonation( 0.0f );
+#endif // FIX_FORCE_DOWN_AND_DETONATION_BUG
+
+		return true;
+	}
+	else
+		return false;
+}
 
 /*virtual*/ void CX2GUElsword_SwordMan::ShowActiveSkillCutInAndLightByScript( float fTimeToShow_, bool bOnlyLight_ /*= false*/ )
 {

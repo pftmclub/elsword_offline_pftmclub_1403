@@ -958,7 +958,7 @@ void CX2BattleFieldGame::CreateBattleFieldNpcByCreatedInfo( const CNpcCreatedInf
 
 #endif	X2OPTIMIZE_FIELD_NPC_BACKGROUND_LOAD
 
-#ifndef NEXON_QA_CHEAT_REQ
+#ifdef NEXON_QA_CHEAT_REQ
 				if ( CX2User::XUAL_NORMAL_USER < g_pData->GetMyUser()->GetAuthLevel() )
 				{
 					if ( NpcCreatedInfoPtr_->GetPetrolLineIndexList().end() == std::find( NpcCreatedInfoPtr_->GetPetrolLineIndexList().begin(), NpcCreatedInfoPtr_->GetPetrolLineIndexList().end(), iLastTouchedIndex ) )

@@ -167,6 +167,14 @@ class CX2GUElsword_SwordMan : public CX2GUUser
 //#ifdef PVP_BOSS_COMBAT_TEST
 //			ESSI_FROZEN,
 //#endif PVP_BOSS_COMBAT_TEST
+			USI_JUMP_UP_RECOVERY,
+			USI_DAMAGE_RAGE,
+			USI_WIND_BLADE_RAGE,
+			USI_CANCEL_MODE,
+			USI_CAN_NOT_ATTACK_JUMP_DOWN,
+			USI_JUMP_DOWN_CANCEL,
+			//USI_INSANE_INTAKE_LEVEL_1,
+			USI_INSANE_INTAKE_LEVEL_2,	
 		};
 		
 		enum ELSWORD_MAJOR_PARTICLE_INSTANCE_ID
@@ -436,9 +444,15 @@ class CX2GUElsword_SwordMan : public CX2GUUser
 #ifdef ELSWORD_WAY_OF_SWORD
 		virtual float		GetFinalDamage_WayOfSword( CX2DamageManager::WAY_OF_SWORD_TYPE eWayOfSwordType_ );
 #endif //ELSWORD_WAY_OF_SWORD
-
+		
+		
 		virtual int GetComboZStateID() const { return ESSI_COMBO_Z1; }
-		virtual int GetComboXStateID() const { return ESSI_COMBO_X1; }
+		virtual int GetComboXStateID() const { return ESSI_COMBO_X1; }		
+		virtual int	GetJumpCancelID() const { return USI_JUMP_READY; }
+		virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
+		virtual int GetManaBreakID() const { return USI_DAMAGE_RAGE; }
+		virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
+		virtual int JumpDownAtkStateID() const { return USI_CAN_NOT_ATTACK_JUMP_DOWN; }
 
 	protected:
 		virtual void ParseCommonRandomState();
@@ -476,6 +490,8 @@ class CX2GUElsword_SwordMan : public CX2GUUser
 		virtual void		NoStateChangeActionFrameMove();
 		
 		void				ProcessEnduranceSkill();		/// 극기 스킬 처리
+		virtual bool		DamageFlushMp_KeyX();
+
 		
 		virtual	bool		ShouldResetNotBusyTimer();
 		virtual void		HyperModeBuffEffectStart();
@@ -723,6 +739,7 @@ class CX2GUElsword_SwordMan : public CX2GUUser
 
 		//ESSI_JUMP_DOWN
 		void JumpDownEventProcess();
+		void USI_CAN_NOT_ATTACK_JUMP_DOWN_EventProcess();
 
 		//ESSI_JUMP_LANDING
 		void JumpLandingEventProcess();
@@ -762,6 +779,31 @@ class CX2GUElsword_SwordMan : public CX2GUUser
 		////ESSI_DAMAGE_GROGGY
 		//void ESSI_DAMAGE_GROGGY_FrameMoveFuture();
 		//void ESSI_DAMAGE_GROGGY_EventProcess();
+
+		//virtual void				DetonationStateChange( CX2DamageManager::DamageData* pDamageData );
+		void						DetonationStateChangeStart();
+		void						DetonationStateChangeEnd();
+		void 						DetonationStateChangeFramemove();
+		void 						DetonationStateChangeInit();
+		void 						DetonationStateChangeEventProcess();
+
+		// DamageAirSmall
+		void DamageAirSmallStartFuture();
+		void DamageAirSmallEventProcess();
+
+		// DamageAirDown
+		void DamageAirDownEventProcess();
+
+		// DamageAirDown_INVINCIBLE
+		void DamageAirDownInvincibleEventProcess();
+		
+
+		// DamageAirFall
+		void DamageAirFallEventProcess();
+		// DamageAirUp
+		void DamageAirUpEventProcess();
+		// DamageAirFly
+		void DamageAirFlyEventProcess();
 
 		//ESSI_DAMAGE_SMALL_FRONT
 		void DamageSmallFrontEventProcess();
@@ -1249,8 +1291,9 @@ class CX2GUElsword_SwordMan : public CX2GUUser
 		void StandUpAttackBackNoDownEventProcess();
 		void StandUpAttackBackNoDownEnd();
 
+		void GenericSpecialActiveSkillEventProcess();
 
-
+		void Jump_Cancel_FrameMoves();
 
 	void ESSI_SA_ESK_WINDMILL_START_Init();
 	void ESSI_SA_ESK_WINDMILL_START_StateStart();

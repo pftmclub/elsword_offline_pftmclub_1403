@@ -144,7 +144,11 @@ public:
 
 		//////////////////////////////////////////////////////////////////////////
 		// 위쪽에 추가해주세요~ 이 아래는 테스트로 추가된 enum 입니다
-
+		USI_JUMP_UP_RECOVERY,
+		USI_DAMAGE_RAGE,
+		USI_CANCEL_MODE,
+		USI_CAN_NOT_ATTACK_JUMP_DOWN,
+		USI_JUMP_DOWN_CANCEL,
 
 		ENSI_TRANSFORMED,
 
@@ -1204,6 +1208,11 @@ public:
 
 	virtual int GetComboZStateID() const { return ENSI_COMBO_Z; }
 	virtual int GetComboXStateID() const { return ENSI_COMBO_X; }
+	virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
+	virtual int	GetJumpCancelID() const { return USI_JUMP_READY; }
+	virtual int GetManaBreakID() const { return USI_DAMAGE_RAGE; }
+	virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
+	virtual int JumpDownAtkStateID() const { return USI_CAN_NOT_ATTACK_JUMP_DOWN; }
 
 #ifdef ADD_EVE_SYSTEM_2014		// 김종훈, 2014 - 이브 추가 시스템, 나소드 코어
 	void	OnFrameMove_ManeuverCore ();
@@ -1785,6 +1794,31 @@ protected:
 	//ENSI_DAMAGE_GROGGY
 	//void ENSI_DAMAGE_GROGGY_FrameMoveFuture();
 	//void ENSI_DAMAGE_GROGGY_EventProcess();
+
+	//virtual void				DetonationStateChange( CX2DamageManager::DamageData* pDamageData );
+	void						DetonationStateChangeStart();
+	void						DetonationStateChangeEnd();
+	void 						DetonationStateChangeFramemove();
+	void 						DetonationStateChangeInit();
+	void 						DetonationStateChangeEventProcess();
+
+	// DamageAirSmall
+	void DamageAirSmallStartFuture();
+	void DamageAirSmallEventProcess();
+
+	// DamageAirDown
+	void DamageAirDownEventProcess();
+
+	// DamageAirDown_INVINCIBLE
+	void DamageAirDownInvincibleEventProcess();
+		
+
+	// DamageAirFall
+	void DamageAirFallEventProcess();
+	// DamageAirUp
+	void DamageAirUpEventProcess();
+	// DamageAirFly
+	void DamageAirFlyEventProcess();
 
 	//ENSI_DAMAGE_SMALL_FRONT
 	void ENSI_DAMAGE_SMALL_FRONT_EventProcess();

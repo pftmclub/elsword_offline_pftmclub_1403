@@ -437,6 +437,14 @@ void CX2GUAra::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 	#pragma endregion
 
+	stateData.Init();
+	stateData.stateID			= USI_JUMP_UP_RECOVERY;
+	m_LuaManager.MakeTableReference( "ASI_JUMP_UP_RECOVERY", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, JumpFrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUAra, JumpUpEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
 	#pragma region ASI_JUMP_DOWN
 	stateData.Init();
 	stateData.stateID			= USI_JUMP_DOWN;
@@ -676,6 +684,22 @@ void CX2GUAra::InitStateCommon()
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageRevengeEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 	#pragma endregion
+
+	stateData.Init();
+	stateData.stateID			= USI_DAMAGE_RAGE;
+	m_LuaManager.MakeTableReference( "ASI_MANA_BREAK", stateData.stateID );
+	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeStart );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeFramemove );	
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEventProcess );
+	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEnd );
+	m_StateList[stateData.stateID] = stateData;	
+
+	stateData.Init();
+	stateData.stateID			= USI_CANCEL_MODE;
+	m_LuaManager.MakeTableReference( "ASI_COMBO_CANCEL", stateData.stateID );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUAra, COMMON_BUFF_FrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, COMMON_BUFF_EventProcess );	
+	m_StateList[stateData.stateID] = stateData;	
 
 	#pragma region ASI_STANDUP_ROLLING_FRONT_FRONT
 	stateData.Init();
@@ -4079,9 +4103,10 @@ void CX2GUAra::StateChangeSpecialAttack( IN const CX2SkillTree::SkillTemplet* pS
 	ShowActiveSkillCutInAndLightByBerserkMode(  0.004f, false  );
 #endif // UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈	
 	
-
+	ChangeWorldColorByHyperMode();		
+	ShowActiveSkillCutInAndLightByBerserkMode(  0.004f, false  );
 #ifdef  X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
-	if( true == m_pXSkinAnim->EventTimerOneshot( 0.2f ) )
+	if( true == m_pXSkinAnim->EventTimerOneshot( 0.693f ) )
 #else   X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
 	if( true == m_pXSkinAnim->EventTimer( 0.2f ) && true == EventCheck( 0.2f, false ) )
 #endif  X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
@@ -4091,8 +4116,12 @@ void CX2GUAra::StateChangeSpecialAttack( IN const CX2SkillTree::SkillTemplet* pS
 		g_pKTDXApp->GetDGManager()->ClearScreen();
 
 	}
+	else if( m_pXSkinAnim->EventTimerOneshot( 0.01f ) )
+	{		
+		ShowMinorParticleHyperModeChange();
+	}
 #ifdef  X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
-    else if( true == m_pXSkinAnim->EventTimerOneshot( 0.25f ) )
+    else if( true == m_pXSkinAnim->EventTimerOneshot( 0.759f ) )
 #else   X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
 	else if( true == m_pXSkinAnim->EventTimer( 0.25f ) && true == EventCheck( 0.25f, false ) )
 #endif  X2OPTIMIZE_NPC_ADAPTIVE_FRAME_MOVE
@@ -5464,6 +5493,12 @@ void CX2GUAra::SLockOnSystem::ProcessLockOn( CX2GUAra* myUnit )
 {
 	KTDXPROFILE();
 
+	if( m_OrgInputData.pureX == true && DamageFlushMp_KeyX()== true )
+	{
+		DetonationStateChange( pDamageData_ );
+		
+		return;			
+	}
 #ifdef ARA_CHANGE_CLASS_FIRST
 	/// 아라 1차 전직 소선 - 기력 활성화
 	CX2DamageManager::EXTRA_DAMAGE_TYPE& eEDT = pDamageData_->m_ExtraDamage.m_ExtraDamageType;
@@ -6599,6 +6634,11 @@ void CX2GUAra::JumpReadyEventProcess()
 	else if( SpecialAttackEventProcess() == true )
 	{
 	}
+	else if( m_InputData.oneDown == true )
+	{
+		m_fCanNotJumpTime = 0.2f;
+		StateChange( GetJumpDownCancelID() );		
+	}
 	else if( true == m_pXSkinAnimFuture->IsAnimationEnd() || true == m_InputData.pureRight || true == m_InputData.pureLeft )
 	{
 		StateChange( USI_JUMP_UP );
@@ -7354,6 +7394,172 @@ else if( true == m_pXSkinAnim->EventTimerOneshot( 0.759f ) )
 #endif // MODIFY_RIDING_PET_AWAKE
 }
 #pragma endregion
+
+void CX2GUAra::DamageAirSmallEventProcess()
+{
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_JUMP_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && GetGageData()->GetNowForceDown() > 80 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.2f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+
+	CommonEventProcess();
+}
+
+/** @function : DamageAirDownEventProcess
+	@brief : 공중에 다운 타격을 받았을 때의 EventProcess
+*/
+void CX2GUAra::DamageAirDownEventProcess()
+{
+//#ifdef LINEMAP_FAST_WIND_TEST
+//	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+//#endif LINEMAP_FAST_WIND_TEST
+
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	CommonEventProcess();
+}
+
+/** @function : DamageAirDownInvincibleEventProcess
+	@brief : 공중에 다운 타격을 받았을 때 무적 상태의 EventProcess
+*/
+void CX2GUAra::DamageAirDownInvincibleEventProcess()
+{
+/** #ifdef LINEMAP_FAST_WIND_TEST
+	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+#endif LINEMAP_FAST_WIND_TEST
+*/
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	
+
+	CommonEventProcess();
+}
+
+
+
+
+/** @function : DamageAirFallEventProcess
+	@brief : UP Type의 공격에 의해 수직으로 올라갔다가 떨어지는 스테이트
+*/
+void CX2GUAra::DamageAirFallEventProcess()
+{
+/**#ifdef LINEMAP_FAST_WIND_TEST
+	m_bEnableUpsideWind = false;
+#endif LINEMAP_FAST_WIND_TEST
+*/
+	if( 0.f < m_PhysicParam.nowSpeed.y )
+	{
+		StateChange( USI_DAMAGE_AIR_UP );
+	}
+	else if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && GetGageData()->GetNowForceDown() > 80 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.2f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+
+	CommonEventProcess();
+}
+
+/** @function : DamageAirUpEventProcess 
+	@brief : UP Type의 공격을 받은 상태의 EventProcess
+*/
+void CX2GUAra::DamageAirUpEventProcess()
+{
+//#ifdef LINEMAP_FAST_WIND_TEST
+//	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+//#endif LINEMAP_FAST_WIND_TEST
+
+	if( 0.f > m_PhysicParam.nowSpeed.y )
+	{
+		StateChange( USI_DAMAGE_AIR_FALL );
+	}
+	else if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && GetGageData()->GetNowForceDown() > 80 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.25f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+
+	CommonEventProcess();
+}
+
+/** @function : DamageAirFlyEventProcess
+	@brief : Fly Type의 공격을 받은 상태의 EventProcess
+*/
+void CX2GUAra::DamageAirFlyEventProcess()
+{
+/**
+#ifdef LINEMAP_FAST_WIND_TEST
+	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+#endif LINEMAP_FAST_WIND_TEST
+*/
+
+	if( true == IsOnSomethingFuture() )
+	{
+		//{{ kimhc // 2010.7.12 // 여러명의 유저를 HOLD 할 수 있도록 함
+#ifdef	USER_HOLD_EX
+		if ( false == GetHold() )
+#endif	USER_HOLD_EX
+		//}} kimhc // 2010.7.12 // 여러명의 유저를 HOLD 할 수 있도록 함
+
+#ifdef TEST_GROUP_GRAP
+		if ( false == GetGrap() )
+#endif TEST_GROUP_GRAP
+
+		{
+#ifdef RIDING_SYSTEM
+			/// 탈것에 탑승중이라면, 탑승물의 스테이트로 변경한다.
+			if ( true == GetRidingOn() )
+				StateChange( USI_RIDING_DAMAGE_FRONT );
+			else
+#endif // RIDING_SYSTEM
+				StateChange( USI_DAMAGE_DOWN_FRONT );
+		}
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && GetGageData()->GetNowForceDown() > 80 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.25f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	
+	CommonEventProcess();
+}
 
 #pragma region DamageSmall
 /** @function : DamageSmallEventProcess
@@ -8115,7 +8321,7 @@ void CX2GUAra::ComboZEventProcess()
 	{
 		StateChange( USI_JUMP_DOWN );
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * _CONST_ARA_::MAGIC_NUMBER_MULTIPLY_LINE_RADIUS;
-	}
+	}	
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange,
 								 m_InputData.oneZ == true, ASI_COMBO_ZZ )
@@ -8139,7 +8345,7 @@ void CX2GUAra::ComboZZEventProcess()
 	{
 		StateChange( USI_JUMP_DOWN );
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * _CONST_ARA_::MAGIC_NUMBER_MULTIPLY_LINE_RADIUS;
-	}
+	}	
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange,
 		m_InputData.oneZ == true, ASI_COMBO_ZZZ )
 		ELSE_IF_STATE_CHANGE_ON_EX_( 1, m_fEventTime[1].keyInputStart, m_fEventTime[1].keyInputEnd, m_fEventTime[1].stateChange,
@@ -8205,7 +8411,7 @@ void CX2GUAra::ComboZZZEventProcess()
 		m_InputData.oneZ == true, ASI_COMBO_ZZZZ )
 	ELSE_IF_STATE_CHANGE_ON_EX_( 1, m_fEventTime[1].keyInputStart, m_fEventTime[1].keyInputEnd, m_fEventTime[1].stateChange,
 		m_InputData.oneX == true, ASI_COMBO_ZZZXStart )
-
+	
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
@@ -8229,7 +8435,7 @@ void CX2GUAra::ComboZZZZEventProcess()
 	{
 		StateChange( USI_JUMP_DOWN );
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * _CONST_ARA_::MAGIC_NUMBER_MULTIPLY_LINE_RADIUS;
-	}
+	}	
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 
 	CommonEventProcess();
@@ -8398,7 +8604,7 @@ void CX2GUAra::ComboZZXEventProcess()
 		( CX2Unit::UC_ARA_LITTLE_DEVIL == GetUnitClass() || CX2Unit::UC_ARA_YAMA_RAJA == GetUnitClass() ), 
 		ASI_COMBO_ALD_ZZXX )
 #endif // SERV_ARA_CHANGE_CLASS_SECOND
-	
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 #pragma endregion 86
@@ -8558,7 +8764,7 @@ void CX2GUAra::ComboXXXloopEventProcess()
 		StateChange( ASI_COMBO_XXXloopX );
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange,
-		m_InputData.oneX == true && m_uiComboXXXLoopCount < 2, ASI_COMBO_XXXloop )
+		m_InputData.oneX == true && m_uiComboXXXLoopCount < 2, ASI_COMBO_XXXloop )	
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 
 	CommonEventProcess();
@@ -8681,7 +8887,7 @@ void CX2GUAra::ComboXXdownXEventProcess()
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange,
 		m_InputData.oneX == true, ASI_COMBO_XXdownXX )
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 #pragma endregion 92
@@ -8718,7 +8924,7 @@ void CX2GUAra::ComboXXdownXXEventProcess()
 	{
 		m_bFPCancel = true;
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 #pragma endregion 93
@@ -8945,7 +9151,7 @@ void CX2GUAra::ComboDashXEventProcess()
 	{
 		m_bFPCancel = true;
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 #pragma endregion 97
@@ -9094,6 +9300,7 @@ void CX2GUAra::DashJumpComboZZEventProcess()
 	{
 		StateChange( USI_DASH_JUMP_LANDING );
 	}
+	JUMP_CANCEL
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange,
 		m_InputData.oneZ == true, ASI_DASH_JUMP_COMBO_ZZZ )
 
@@ -9129,7 +9336,7 @@ void CX2GUAra::DashJumpComboZZZEventProcess()
 	{
 		StateChange( USI_DASH_JUMP_LANDING );
 	}
-
+	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 	CommonEventProcess();
 }
 #pragma endregion 102

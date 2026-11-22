@@ -236,7 +236,11 @@ class CX2GURaven : public CX2GUUser
 
 			//////////////////////////////////////////////////////////////////////////
 			// 위쪽에 추가해주세요~ 이 아래는 테스트로 추가된 enum 입니다
-
+			USI_JUMP_UP_RECOVERY,
+			USI_DAMAGE_RAGE,
+			USI_CANCEL_MODE,
+			USI_CAN_NOT_ATTACK_JUMP_DOWN,
+			USI_JUMP_DOWN_CANCEL,
 
 			RSI_TRANSFORMED,
 
@@ -557,6 +561,10 @@ class CX2GURaven : public CX2GUUser
 
 		virtual int GetComboZStateID() const { return RSI_COMBO_Z; }
 		virtual int GetComboXStateID() const { return RSI_COMBO_X; }
+		virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
+		virtual int	GetJumpCancelID() const { return USI_JUMP_READY; }
+		virtual int GetManaBreakID() const { return USI_DAMAGE_RAGE; }
+		virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
 	protected:
 		bool								m_bReAttackZ1Right;
 		float								m_fReAttackZ1Time;
@@ -797,6 +805,13 @@ class CX2GURaven : public CX2GUUser
 		//RSI_DAMAGE_GROGGY
 		//void RSI_DAMAGE_GROGGY_FrameMoveFuture();
 		//void RSI_DAMAGE_GROGGY_EventProcess();
+
+		//virtual void				DetonationStateChange( CX2DamageManager::DamageData* pDamageData );
+		void						DetonationStateChangeStart();
+		void						DetonationStateChangeEnd();
+		void 						DetonationStateChangeFramemove();
+		void 						DetonationStateChangeInit();
+		void 						DetonationStateChangeEventProcess();
 
 		//RSI_DAMAGE_SMALL_FRONT
 		void RSI_DAMAGE_SMALL_FRONT_EventProcess();
@@ -1389,7 +1404,7 @@ class CX2GURaven : public CX2GUUser
 		void RSI_A_RWT_BARRAGE_ATTACK_STAND_FrameMove();
 		void RSI_A_RWT_BARRAGE_ATTACK_AIR_EventProcess();
 		void RSI_A_RWT_BARRAGE_ATTACK_AIR_FrameMove();
-#ifdef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
+#ifndef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
 		void RSI_A_RWT_BARRAGE_ATTACK_AIR_FrameMoveFutrue();
 #endif RAVEN_LIMIT_AIR_COMBO
 
@@ -1399,7 +1414,7 @@ class CX2GURaven : public CX2GUUser
 		void RSI_SA_RWT_BURSTING_BLADE_ATTACK_FrameMove();
 		void RSI_SA_RWT_BURSTING_BLADE_ATTACK_EventProcess();
 		void RSI_SA_RWT_BURSTING_BLADE_ATTACK_StateEnd();
-#ifdef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
+#ifndef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
 		void RSI_SA_RWT_BURSTING_BLADE_ATTACK_AIR_FrameMoveFuture();
 		void RSI_SA_RWT_BURSTING_BLADE_ATTACK_AIR_EventProcess();
 #endif RAVEN_LIMIT_AIR_COMBO

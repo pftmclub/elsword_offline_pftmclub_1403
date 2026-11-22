@@ -313,6 +313,17 @@ public:
 		int				m_iMiddleBossAlive;
 		DWORD			m_dwPlayStartTick;
 
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+		/// KRoomUser's continue timer (RoomUser.cpp:1371-1419): m_bEndPlay reserved by a death, m_fDelayPacketTime
+		/// ( 15 s ) on m_tDelayPacketTimer, and the 11 s cash-continue window on m_tCashContinueTimer. KDungeonRoom::Tick
+		/// ends the play when it runs out (DungeonRoom.cpp:250-253); a resurrect clears it (:8939).
+		bool			m_bContinueEndPlay;
+		bool			m_bCashContinueReady;
+		float			m_fContinueDelayTime;
+		DWORD			m_dwContinueDelayTick;
+		DWORD			m_dwCashContinueTick;
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+
 		//////////////////////////////////////////////////////////////////////////
 		/// AI party members (AI_PARTY_PLAN.md phase 1). One entry per bot the
 		/// auto-party button asked for; empty for every other way into a room,
@@ -380,6 +391,13 @@ public:
 			m_kResultData.m_vecDungeonUnitInfo.clear();
 			m_kResultData.m_mapHaveExpInDungeon.clear();
 			m_bResultDataPending = false;
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+			m_bContinueEndPlay		= false;
+			m_bCashContinueReady	= false;
+			m_fContinueDelayTime	= 0.0f;
+			m_dwContinueDelayTick	= 0;
+			m_dwCashContinueTick	= 0;
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
 		}
 
 		void Clear()
@@ -737,6 +755,15 @@ private:
 	bool Handler_EGS_USER_UNIT_DIE_COMPLETE_REQ( KOfflineSession& kSes, const KEvent& kEvent );
 	bool Handler_EGS_RESURRECT_TO_CONTINUE_DUNGEON_REQ( KOfflineSession& kSes, const KEvent& kEvent );
 	bool Handler_EGS_STOP_DUNGEON_CONTINUE_TIME_REQ( KOfflineSession& kSes, const KEvent& kEvent );
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+	/// ERM_SKIP_CONTINUE_DUNGEON_NOT (DungeonRoom.cpp:8943-8957): the dead player skips the wait; alone, the play ends.
+	bool Handler_EGS_SKIP_CONTINUE_DUNGEON_NOT( KOfflineSession& kSes, const KEvent& kEvent );
+	/// KDungeonRoom::Tick's CheckEndPlay (DungeonRoom.cpp:250-253), on the play-status beat.
+	void TickDungeonContinueEnd( KOfflineSession& kSes );
+	/// The room ending the play itself ( KRoom::EndPlay, Room.cpp:683-712 ): Handler_EGS_END_GAME_REQ's body after its ACK,
+	/// with DecideWinTeam's team (DungeonRoom.cpp:1178-1188).
+	bool EndDungeonGame( KOfflineSession& kSes, int iWinTeam );
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
 	bool Handler_EGS_DUNGEON_SECRET_STAGE_ENTER_CHECK_REQ( KOfflineSession& kSes, const KEvent& kEvent );
 	bool Handler_EGS_START_REWARD_BOX_SELECT_REQ( KOfflineSession& kSes, const KEvent& kEvent );
 	bool Handler_EGS_SELECT_REWARD_BOX_REQ( KOfflineSession& kSes, const KEvent& kEvent );

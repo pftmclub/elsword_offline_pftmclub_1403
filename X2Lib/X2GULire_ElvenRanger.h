@@ -181,7 +181,13 @@ class CX2GULire_ElvenRanger : public CX2GUUser
 
 			LESI_TRANSFORMED,
 
-
+			USI_JUMP_UP_RECOVERY,
+			USI_MANA_BREAK,
+			USI_CANCEL_MODE,
+			USI_CAN_NOT_ATTACK_JUMP_DOWN,
+			USI_JUMP_DOWN_CANCEL,
+			//USI_INSANE_INTAKE_LEVEL_1,
+			//USI_INSANE_INTAKE_LEVEL_2,
 
 //#ifdef PVP_BOSS_COMBAT_TEST
 //			LESI_FROZEN,
@@ -526,6 +532,12 @@ class CX2GULire_ElvenRanger : public CX2GUUser
 
 		virtual int GetComboZStateID() const { return LESI_COMBO_Z1; }
 		virtual int GetComboXStateID() const { return LESI_COMBO_X1; }
+		virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
+		virtual int	GetJumpCancelID() const { return USI_JUMP_READY; }
+		virtual int GetManaBreakID() const { return USI_MANA_BREAK; }
+		virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
+		virtual int JumpDownAtkStateID() const { return USI_CAN_NOT_ATTACK_JUMP_DOWN; }
+		
 
 #ifdef ADD_RENA_SYSTEM //김창한
 		void	ConsumeNaturalForce( int iCount_ );				//자연의 기운 소모
@@ -858,6 +870,7 @@ class CX2GULire_ElvenRanger : public CX2GUUser
 
 		//LESI_JUMP_UP
 		void JumpUpEventProcess();
+		void USI_JumpUpEventProcess();
 
 		//LESI_JUMP_DOWN
 		void JumpDownEventProcess();
@@ -948,6 +961,31 @@ class CX2GULire_ElvenRanger : public CX2GUUser
 		////LESI_DAMAGE_GROGGY
 		//void LESI_DAMAGE_GROGGY_FrameMoveFuture();
 		//void LESI_DAMAGE_GROGGY_EventProcess();
+
+		virtual void				DetonationStateChange( CX2DamageManager::DamageData* pDamageData );
+		void						DetonationStateChangeStart();
+		void						DetonationStateChangeEnd();
+		void 						DetonationStateChangeFramemove();
+		void 						DetonationStateChangeInit();
+		void 						DetonationStateChangeEventProcess();
+
+		// DamageAirSmall
+		void DamageAirSmallStartFuture();
+		void DamageAirSmallEventProcess();
+
+		// DamageAirDown
+		void DamageAirDownEventProcess();
+
+		// DamageAirDown_INVINCIBLE
+		void DamageAirDownInvincibleEventProcess();
+		
+
+		// DamageAirFall
+		void DamageAirFallEventProcess();
+		// DamageAirUp
+		void DamageAirUpEventProcess();
+		// DamageAirFly
+		void DamageAirFlyEventProcess();
 
 		//LESI_DAMAGE_SMALL_FRONT
 		void DamageSmallFrontEventProcess();

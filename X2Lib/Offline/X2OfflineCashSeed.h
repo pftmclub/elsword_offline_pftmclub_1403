@@ -2414,6 +2414,7 @@ namespace X2OfflineCashSeed
 		{  2358,     85718,  22,    1, 0 },
 		{  2359,     85719,  23,    1, 0 },
 		{  2360,    200885,  41,    1, 0 },
+		{  2361,    160267,  41,    25, 0 },
 	};
 
 	static const int ROW_COUNT = sizeof( ROWS ) / sizeof( ROWS[0] );

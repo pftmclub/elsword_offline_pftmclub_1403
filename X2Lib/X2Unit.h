@@ -312,7 +312,15 @@ class CX2Unit : public CKTDXDeviceHolder, public CX2Unit_PreHeader
 
 			wstring				m_GameMotion0;
 			wstring				m_GameMotion1;
-			wstring				m_GameMotion2;			
+			wstring				m_GameMotion2;
+			wstring				m_GameMotion3;
+			wstring				m_GameMotion4;
+			wstring				m_GameMotion5;
+			wstring				m_GameMotion6;
+			wstring				m_GameMotion7;
+			wstring				m_GameMotion8;
+			wstring				m_GameMotion9;
+			wstring				m_GameMotion10;
 #endif
 
 #ifdef REFORM_ENTRY_POINT	 	// 13-11-11, 진입 구조 개편, kimjh
@@ -1011,13 +1019,7 @@ class CX2Unit : public CKTDXDeviceHolder, public CX2Unit_PreHeader
 
 #ifdef	SERV_EXPAND_QUICK_SLOT
 		void		SetExpandQuickSlot(bool bExpandQuickSlot) { m_bExpandQuickSlot = bExpandQuickSlot; }
-//{{ Iruha : 2026-08-27 // All 6 consumable quick slots open by default
-#ifdef SERV_IRUHADEV_QUICK_SLOT_FULL_FREE
-		bool		IsExpandQuickSlot() const { return true; }
-#else
 		bool		IsExpandQuickSlot() const { return m_bExpandQuickSlot; }
-#endif SERV_IRUHADEV_QUICK_SLOT_FULL_FREE
-//}}
 #endif  SERV_EXPAND_QUICK_SLOT
 
 		int GetAverageItemlevel() const;

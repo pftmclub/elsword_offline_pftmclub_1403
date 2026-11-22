@@ -1703,11 +1703,15 @@ CX2ItemManager* CX2Data::ResetItemManager()
 
 #ifdef SERV_ITEM_LUA_TRANS_DEVIDE
 	const wchar_t*  apwszArray[] = { L"Item.lua", L"SetItem.lua", L"ItemTrans.lua", L"SetItemTrans.lua" };
-#else //SERV_ITEM_LUA_TRANS_DEVIDE
-    const wchar_t*  apwszArray[] = { L"Item.lua", L"SetItem.lua" };
+#else //SERV_ITEM_LUA_TRANS_DEVIDE    
+	
 #endif //SERV_ITEM_LUA_TRANS_DEVIDE
-
+	
+	const wchar_t*  apwszArray[] = { L"Item.lua", L"SetItem.lua" };
     m_pItemManager->OpenItemScriptFile( L"Item.kim", ARRAY_SIZE( apwszArray ), apwszArray );
+	m_pItemManager->OpenScriptFile( L"Item2.lua" );
+	
+	
 #endif UNITED_CLIENT_EU
 	//}}	
 #else   //X2OPTIMIZE_ITEM_TEMPLET_PREPROCESSING

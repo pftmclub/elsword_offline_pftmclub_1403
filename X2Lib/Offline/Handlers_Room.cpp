@@ -177,7 +177,11 @@ void CX2OfflineServer::MakeRoomUserInfo( const KOfflineUnitRow& kRow, OUT KRoomU
 	kOut.m_iGSUID			= 1;
 	kOut.m_iOwnerUserUID	= kRow.m_nUserUID;
 	kOut.m_sServerGroupID	= 1;
+#ifdef SERV_IRUHADEV_OFFLINE_AUTH_LEVEL
+	kOut.m_cAuthLevel		= (char)CX2OfflineDB::Instance()->GetAuthLevel();	///< bots below stay normal
+#else SERV_IRUHADEV_OFFLINE_AUTH_LEVEL
 	kOut.m_cAuthLevel		= (char)CX2User::XUAL_NORMAL_USER;
+#endif SERV_IRUHADEV_OFFLINE_AUTH_LEVEL
 	kOut.m_nUnitUID			= kRow.m_nUnitUID;
 	kOut.m_cUnitClass		= (char)kRow.m_iUnitClass;
 	kOut.m_wstrNickName		= kRow.m_wstrNickName;
@@ -3183,6 +3187,21 @@ bool CX2OfflineServer::Handler_EGS_END_GAME_REQ( KOfflineSession& kSes, const KE
 	kAck.m_iOK = NetError::NET_OK;
 	Reply( kSes, EGS_END_GAME_ACK, kAck );
 
+
+	// The rest is KRoom::EndPlay's side of it, which the room also runs on its own when every player is dead.
+	return EndDungeonGame( kSes, kReq.m_iWinTeam );
+}
+
+//#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+
+bool CX2OfflineServer::EndDungeonGame( KOfflineSession& kSes, int iWinTeam )
+{
+	KEGS_END_GAME_REQ kReq;
+	kReq.m_iWinTeam = iWinTeam;
+
+	// The play is over: the room leaves S_PLAY (Room.cpp:712), so its Tick no longer checks the continue timer.
+	m_kRoom.m_bContinueEndPlay = false;
+
 	if( false == m_kRoom.m_bActive )
 		return true;
 
@@ -3253,12 +3272,16 @@ bool CX2OfflineServer::Handler_EGS_END_GAME_REQ( KOfflineSession& kSes, const KE
 		//
 		// The play time is the same figure the result screen shows, and the
 		// damage is the hit count the client reported for itself.
+#ifdef SERV_IRUHADEV_JUNE_QUEST_RESULT_RANK
+		// Quest Q4c: moved to SendDungeonResultData, after the play result, with the run's rank ( GSUserDungeon.cpp:601-608 ).
+#else SERV_IRUHADEV_JUNE_QUEST_RESULT_RANK
 		const int iPlayTime = ( 0 != m_kRoom.m_dwPlayStartTick )
 								? (int)( ( ::GetTickCount() - m_kRoom.m_dwPlayStartTick ) / 1000 )
 								: 0;
 
 		QuestOnDungeonClear( kSes, (char)CX2DungeonRoom::RT_NONE, iPlayTime,
 							 m_kRoom.m_kPlayResult.m_nDamageCount );
+#endif SERV_IRUHADEV_JUNE_QUEST_RESULT_RANK
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -3284,9 +3307,19 @@ bool CX2OfflineServer::Handler_EGS_END_GAME_REQ( KOfflineSession& kSes, const KE
 	kResult.m_bSpecChar1		= false;
 	kResult.m_bSpecChar2		= false;
 
+#ifdef SERV_IRUHADEV_JUNE_QUEST_RESULT_RANK
+	// Quest Q4c. KDungeonRoom::ComputeTotalPlayTime (DungeonRoom.cpp:2632-2634): TM_PLAY, restarted at StartGame
+	// (Room.cpp:661, m_dwPlayStartTick here), less the room's loading time m_fLoadingTime - the LOADING_TIMER the secret
+	// poison port already keeps ( m_fPoisonLoadingSec: StartPlay and each stage load to the sub-stage start ). The time
+	// rank, the result screen and the clear-time sub-quests all read this figure ( :1387, :1999; GSUserDungeon.cpp:607 ).
+	kResult.m_nSec = ( 0 != m_kRoom.m_dwPlayStartTick )
+						? (int)( (double)( ::GetTickCount() - m_kRoom.m_dwPlayStartTick ) / 1000.0 - (double)m_kRoom.m_fPoisonLoadingSec )
+						: 0;
+#else SERV_IRUHADEV_JUNE_QUEST_RESULT_RANK
 	kResult.m_nSec = ( 0 != m_kRoom.m_dwPlayStartTick )
 						? (int)( ( ::GetTickCount() - m_kRoom.m_dwPlayStartTick ) / 1000 )
 						: 0;
+#endif SERV_IRUHADEV_JUNE_QUEST_RESULT_RANK
 
 	KDungeonUnitResultInfo kUnitResult;
 	kUnitResult.m_UnitUID			= m_kRoom.m_nUnitUID;
@@ -3320,7 +3353,12 @@ bool CX2OfflineServer::Handler_EGS_END_GAME_REQ( KOfflineSession& kSes, const KE
 	// kBefore was read after the kills had already credited their EXP, so the
 	// "before" figure has to have the run's EXP taken back off - same correction
 	// as the ED line below, and for the same reason.
+#ifdef SERV_IRUHADEV_JUNE_RESULT_OLD_EXP
+	// R3b: at the level cap the kills credit nothing, so the subtraction would fall below the cap's EXP
+	kUnitResult.m_nOldEXP			= ( 0 <= m_kRoom.m_iRunStartEXP ) ? m_kRoom.m_iRunStartEXP : kBefore.m_iEXP - iAddEXP;
+#else SERV_IRUHADEV_JUNE_RESULT_OLD_EXP
 	kUnitResult.m_nOldEXP			= kBefore.m_iEXP - iAddEXP;
+#endif SERV_IRUHADEV_JUNE_RESULT_OLD_EXP
 
 	// kBefore was read after the coins were credited, so the "before" ED has to
 	// have them taken back off or the result screen animates from the finished
@@ -3385,9 +3423,20 @@ bool CX2OfflineServer::Handler_EGS_END_GAME_REQ( KOfflineSession& kSes, const KE
 	m_kRoom.m_iRewardED		= 0;
 	m_kRoom.m_iCollectedED	= 0;
 
+#ifdef SERV_IRUHADEV_OFFLINE_ITEM_BUFF
+	// ERM_UPDATE_DUNGEON_UNIT_INFO_NOT (GSUserDungeon.cpp:848-856), the dungeon end:
+	// the end-dungeon-game flag, and the list again if anything went.
+	const bool bNotSent = Reply( kSes, EGS_END_GAME_NOT, kNot );
+	if( (char)CX2Room::RT_DUNGEON == m_kRoom.m_kInfo.m_RoomType &&
+		true == CX2OfflineBuff::Instance()->OnEndDungeonGame( kSes.m_nSelectedUnitUID ) )
+		SendUpdateBuffInfo( kSes );
+	return bNotSent;
+#else // SERV_IRUHADEV_OFFLINE_ITEM_BUFF
 	return Reply( kSes, EGS_END_GAME_NOT, kNot );
+#endif SERV_IRUHADEV_OFFLINE_ITEM_BUFF
 }
 
+//#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
 bool CX2OfflineServer::Handler_EGS_STATE_CHANGE_RESULT_REQ( KOfflineSession& kSes, const KEvent& kEvent )
 {
 	KEGS_STATE_CHANGE_RESULT_REQ kReq;
@@ -3501,6 +3550,21 @@ bool CX2OfflineServer::Handler_EGS_USER_UNIT_DIE_REQ( KOfflineSession& kSes, con
 	CX2OfflineLog::Server( L"GAME     unitUID=%I64d died (killer NPC UID=%d)",
 		(__int64)m_kRoom.m_nUnitUID, kReq.m_KillerNPCUID );
 
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+	// ERM_USER_UNIT_DIE_REQ -> ReserveEndPlay (DungeonRoom.cpp:7908, RoomUser.cpp:1371-1377): a dungeon room starts the
+	// 15 s continue timer. A battle field room has its own rules and never did this.
+	if( (char)CX2Room::RT_DUNGEON == m_kRoom.m_kInfo.m_RoomType && 0 == m_kRoom.m_kInfo.m_iBattleFieldID )
+	{
+		m_kRoom.m_bContinueEndPlay		= true;
+		m_kRoom.m_fContinueDelayTime	= 15.0f;
+		m_kRoom.m_bCashContinueReady	= false;
+		m_kRoom.m_dwContinueDelayTick	= ::GetTickCount();
+
+		CX2OfflineLog::Server( L"GAME     continue: the run ends in %.0fs unless the unit is revived ( or at once on X )",
+			m_kRoom.m_fContinueDelayTime );
+	}
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+
 	return Reply( kSes, EGS_USER_UNIT_DIE_NOT, kNot );
 }
 
@@ -3523,6 +3587,90 @@ bool CX2OfflineServer::Handler_EGS_RESURRECT_TO_CONTINUE_DUNGEON_REQ( KOfflineSe
 	if( false == ReadReq( kEvent, kReq ) )
 		return false;
 
+#ifdef SERV_IRUHADEV_OFFLINE_RES_STONE
+	// The real flow, in the order the servers run it:
+	//   GSUserDungeon.cpp EGS_RESURRECT_TO_CONTINUE_DUNGEON_REQ  - refuse with
+	//       ERR_RESURRECT_00 when the character holds no stone;
+	//   DungeonRoom.cpp / BattleFieldRoom.cpp ERM_RESURRECT_...  - mark the unit
+	//       alive, answer NET_OK with the dungeon ID, broadcast
+	//       EGS_RESURRECT_TO_CONTINUE_DUNGEON_NOT (who, used by whom, start index);
+	//   GSUserDungeon.cpp EGS_RESURRECT_TO_CONTINUE_DUNGEON_ACK  - take the stone
+	//       and put the remaining count on the ACK the client reads.
+	// Offline those three hops are this one function. The count is
+	// unit.resurrection_stone (schema v15), so it survives a relog.
+	CX2OfflineDB* pDB = CX2OfflineDB::Instance();
+
+	KEGS_RESURRECT_TO_CONTINUE_DUNGEON_ACK kAck;
+	kAck.m_iDungeonID				= m_kRoom.m_kInfo.m_iDungeonID;
+	kAck.m_iNumAutoPaymentResStone	= 0;
+	kAck.m_bUseCash					= false;
+
+	int iStones = 0;
+	pDB->GetResurrectionStone( kSes.m_nSelectedUnitUID, iStones );
+
+	// A cash revive is what the client asks for once it holds no stone (the "revive
+	// with cash?" box, X2Game.cpp:13852). On live the GameServer buys a stone
+	// product through billing, adds it to the count, the room revives, and the ACK
+	// handler spends one: the character ends where it started and the wallet is
+	// lighter. Offline the wallet is cosmetic and never deducted (see
+	// Handler_EGS_BUY_CASH_ITEM_REQ), so the same flow is a revive that leaves the
+	// stone count alone. m_bUseCash on the ACK makes the client re-ask for the
+	// balance, which Handler_EGS_CHECK_BALANCE_REQ answers.
+	const bool bCash = ( true == kReq.m_bUseCash );
+
+	if( false == m_kRoom.m_bActive || ( false == bCash && iStones <= 0 ) )
+	{
+		kAck.m_iOK						= NetError::ERR_RESURRECT_00;
+		kAck.m_iNumResurrectionStone	= iStones;
+
+		CX2OfflineLog::Server( L"GAME     refused resurrect: %s (stones=%d)",
+			( false == m_kRoom.m_bActive ) ? L"no active room" : L"no stone left", iStones );
+
+		return Reply( kSes, EGS_RESURRECT_TO_CONTINUE_DUNGEON_ACK, kAck );
+	}
+
+	if( false == bCash )
+	{
+		--iStones;
+
+		if( false == pDB->SetResurrectionStone( kSes.m_nSelectedUnitUID, iStones ) )
+		{
+			// Not saved means not spent: refusing keeps the screen and the save agreeing.
+			kAck.m_iOK						= NetError::ERR_RESURRECT_00;
+			kAck.m_iNumResurrectionStone	= iStones + 1;
+
+			CX2OfflineLog::Server( L"GAME     refused resurrect: could not save the stone count" );
+
+			return Reply( kSes, EGS_RESURRECT_TO_CONTINUE_DUNGEON_ACK, kAck );
+		}
+	}
+
+	kAck.m_bUseCash					= bCash;
+	kAck.m_iOK						= NetError::NET_OK;
+	kAck.m_iNumResurrectionStone	= iStones;
+
+	Reply( kSes, EGS_RESURRECT_TO_CONTINUE_DUNGEON_ACK, kAck );
+
+	// A battlefield room sends start index 0 (BattleFieldRoom.cpp:3660); a dungeon
+	// room picks one at random per stage (DungeonRoom.cpp:8935), which is what the
+	// client's own -1 ("pick a start position at random", CX2GUUser::InitPosition)
+	// does with the line map it already has loaded.
+	KEGS_RESURRECT_TO_CONTINUE_DUNGEON_NOT kNot;
+	kNot.m_iUnitUID			= ( 0 != kReq.m_iUnitUID ) ? kReq.m_iUnitUID : m_kRoom.m_nUnitUID;
+	kNot.m_iUsedByUnitUID	= m_kRoom.m_nUnitUID;
+	kNot.m_iStartPosIndex	= ( 0 != m_kRoom.m_kInfo.m_iBattleFieldID ) ? 0 : -1;
+
+	CX2OfflineLog::Server( L"GAME     resurrected unitUID=%I64d%s, %d stone(s) left",
+		(__int64)kNot.m_iUnitUID, true == bCash ? L" by cash" : L"", iStones );
+
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+	// SetEndPlay( unit, false ) (DungeonRoom.cpp:8939): the reserved end is off.
+	m_kRoom.m_bContinueEndPlay = false;
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+
+	return Reply( kSes, EGS_RESURRECT_TO_CONTINUE_DUNGEON_NOT, kNot );
+#else // SERV_IRUHADEV_OFFLINE_RES_STONE
+
 	// Refused, deliberately, with the code the real server uses when the
 	// character has no resurrection stone (GSUserDungeon.cpp:1515). There are
 	// none offline - resurrection stones are inventory, which is phase 5 - so
@@ -3541,6 +3689,7 @@ bool CX2OfflineServer::Handler_EGS_RESURRECT_TO_CONTINUE_DUNGEON_REQ( KOfflineSe
 		( true == kReq.m_bUseCash ) ? L" - cash request" : L"" );
 
 	return Reply( kSes, EGS_RESURRECT_TO_CONTINUE_DUNGEON_ACK, kAck );
+#endif SERV_IRUHADEV_OFFLINE_RES_STONE}
 }
 
 bool CX2OfflineServer::Handler_EGS_STOP_DUNGEON_CONTINUE_TIME_REQ( KOfflineSession& kSes, const KEvent& kEvent )
@@ -3555,8 +3704,61 @@ bool CX2OfflineServer::Handler_EGS_STOP_DUNGEON_CONTINUE_TIME_REQ( KOfflineSessi
 	kAck.m_iOK		= NetError::NET_OK;
 	kAck.m_bIsStop	= kReq.m_bIsStop;
 
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+	// The room's half does pause something: KRoomUser::StopDungeonContinueTime (RoomUser.cpp:1398-1419). Stop = keep
+	// what is left of the 15 s and give the cash revive an 11 s window; resume = the delay restarts from now.
+	if( true == kReq.m_bIsStop )
+	{
+		m_kRoom.m_fContinueDelayTime	-= (float)( ::GetTickCount() - m_kRoom.m_dwContinueDelayTick ) / 1000.0f;
+		m_kRoom.m_bCashContinueReady	= true;
+		m_kRoom.m_dwCashContinueTick	= ::GetTickCount();
+	}
+	else
+	{
+		m_kRoom.m_bCashContinueReady	= false;
+		m_kRoom.m_dwContinueDelayTick	= ::GetTickCount();
+	}
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+
 	return Reply( kSes, EGS_STOP_DUNGEON_CONTINUE_TIME_ACK, kAck );
 }
+
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+bool CX2OfflineServer::Handler_EGS_SKIP_CONTINUE_DUNGEON_NOT( KOfflineSession& kSes, const KEvent& /*kEvent*/ )
+{
+	// No body ( SendID ) and no reply. GSUserDungeon.cpp:1919-1924 forwards it to the room; ERM_SKIP_CONTINUE_DUNGEON_NOT
+	// (DungeonRoom.cpp:8943-8957) needs S_PLAY and ends the play when every OTHER member's CheckEndPlay holds
+	// ( CheckEndPlayAnotherMember, RoomUserManager.cpp:6209-6234 ) - with the player alone, at once.
+	if( false == m_kRoom.m_bActive || (char)CX2Room::RT_DUNGEON != m_kRoom.m_kInfo.m_RoomType ||
+		0 != m_kRoom.m_kInfo.m_iBattleFieldID || (char)CX2Room::RS_PLAY != m_kRoom.m_kInfo.m_RoomState )
+	{
+		CX2OfflineLog::Server( L"GAME     continue skipped outside a dungeon in play - nothing to end ( DungeonRoom.cpp:8945 )" );
+		return true;
+	}
+
+	CX2OfflineLog::Server( L"GAME     continue skipped: the run ends now as a fail ( TN_MONSTER )" );
+	return EndDungeonGame( kSes, (int)CX2Room::TN_MONSTER );
+}
+
+void CX2OfflineServer::TickDungeonContinueEnd( KOfflineSession& kSes )
+{
+	if( false == m_kRoom.m_bContinueEndPlay || false == m_kRoom.m_bActive ||
+		(char)CX2Room::RS_PLAY != m_kRoom.m_kInfo.m_RoomState )
+		return;
+
+	// KRoomUser::CheckEndPlay (RoomUser.cpp:1379-1396): 11 s from the pause while the cash revive is up, otherwise the
+	// remaining delay ( 15 s from the death ).
+	const DWORD dwNow = ::GetTickCount();
+	const bool bEnd = ( true == m_kRoom.m_bCashContinueReady )
+						? ( (float)( dwNow - m_kRoom.m_dwCashContinueTick ) / 1000.0f >= 11.0f )
+						: ( (float)( dwNow - m_kRoom.m_dwContinueDelayTick ) / 1000.0f >= m_kRoom.m_fContinueDelayTime );
+	if( false == bEnd )
+		return;
+
+	CX2OfflineLog::Server( L"GAME     continue ran out: the run ends as a fail ( TN_MONSTER, DungeonRoom.cpp:250-253 )" );
+	EndDungeonGame( kSes, (int)CX2Room::TN_MONSTER );
+}
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
 
 bool CX2OfflineServer::Handler_EGS_DUNGEON_SECRET_STAGE_ENTER_CHECK_REQ( KOfflineSession& kSes, const KEvent& /*kEvent*/ )
 {

@@ -24,7 +24,7 @@
 //====================국가 전용 시작=============================================================
 // 2010. 12. 13. 지헌 : XTRAP 클라이언트 flag
 #ifdef _SERVICE_
-#define CLIENT_USE_XTRAP
+//#define CLIENT_USE_XTRAP
 #endif
 
 #define _K3RCOMBO_US_	// 퍼블리셔 설정

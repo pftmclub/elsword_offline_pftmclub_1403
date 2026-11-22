@@ -102,6 +102,17 @@ public:
 		SI_SA_COMMON_AURA_ADDATK_ACCEL,					/// 섬멸의 문장
 		#pragma endregion 버프
 
+		// 버프 필살기, 캐릭터 공통		300~599
+		SI_SA_COMMON_POWER_ACCEL = 300,					//파워엑셀레이터
+		SI_SA_COMMON_MAGIC_ACCEL,						//매직엑셀레이터
+		SI_SA_COMMON_SHIELD_ACCEL,						//실드엑셀레이터
+		//SI_SA_COMMON_AURA_POWER_ACCEL,					//오러파워엑셀레이터
+		//SI_SA_COMMON_AURA_MAGIC_ACCEL,					//오러매직엑셀레이터
+		//SI_SA_COMMON_AURA_SHIELD_ACCEL,					//오러실드엑셀레이터
+		SI_SA_COMMON_POWER_ADRENALIN,					//파워아드레날린
+		SI_SA_COMMON_MAGIC_ADRENALIN,					//매직아드레날린
+		SI_SA_COMMON_SHIELD_ADRENALIN,					//실드아드레날린
+
 		#pragma region 길드, 결혼
 		SI_GP_COMMON_BALANCED_BODY					= 500,		/// 균형잡힌 육체
 		SI_GP_COMMON_HARMONIC_SPIRIT				= 501,		/// 조화로운 영혼

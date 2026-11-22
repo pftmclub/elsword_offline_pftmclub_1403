@@ -1672,6 +1672,8 @@ void CX2Game::SystemLoading()
 	if( NULL != g_pData->GetPicCharTechPoint() )
 		g_pData->GetPicCharTechPoint()->Clear();
 
+	m_hSeqTech = GetMajorParticle()->CreateSequenceHandle( NULL, L"TechBonus", 0.0f, 0.0f, 0.0f,  0.0f, 0.0f );
+	SetGameScore( 0 );
 
 	m_hDangerAlarm = GetMajorParticle()->CreateSequenceHandle( NULL, L"danger_alarm_01", 0.0f, 0.0f, 0.0f );
 	CKTDGParticleSystem::CParticleEventSequence* pSeq = GetMajorParticle()->GetInstanceSequence( m_hDangerAlarm );
@@ -3267,8 +3269,10 @@ HRESULT	CX2Game::OnFrameMove( double fTime, float fElapsedTime )
 			g_pData->GetPicCharBlue()->OnFrameMove( fElapsedTime );
 		if( g_pData->GetPicCharGreen() != NULL )
 			g_pData->GetPicCharGreen()->OnFrameMove( fElapsedTime );
-		if( g_pData->GetPicCharYellow() != NULL )
+		if( g_pData->GetPicCharYellow() != NULL )		
 			g_pData->GetPicCharYellow()->OnFrameMove( fElapsedTime );
+		if( g_pData->GetPicCharGameScore() != NULL )
+			g_pData->GetPicCharGameScore()->OnFrameMove( fElapsedTime );
 		if( g_pData->GetPicCharTechPoint() != NULL )
 			g_pData->GetPicCharTechPoint()->OnFrameMove( fElapsedTime );
 
@@ -3290,6 +3294,11 @@ HRESULT	CX2Game::OnFrameMove( double fTime, float fElapsedTime )
 			m_fTechPointViewTime -= m_fElapsedTime;
 			if( m_fTechPointViewTime <= 0.0f )
 			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = GetMajorParticle()->GetInstanceSequence( m_hSeqTech );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+				}
 
 				AddGameScore( m_TechPoint, 0.4f );
 				m_TechPoint = 0;
@@ -10670,8 +10679,8 @@ void CX2Game::SetGameScore()
 		)
 	{
 		WCHAR texBuf[30] = {0,};
-		StringCchPrintf( texBuf, 30, L"%09d", m_GameScore );
-		//wsprintf( texBuf, L"%09d", m_GameScore );
+		//StringCchPrintf( texBuf, 30, L"%09d", m_GameScore );
+		wsprintf( texBuf, L"%09d", m_GameScore );
 		if( NULL != g_pData->GetPicCharGameScore() )
 		{
 			g_pData->GetPicCharGameScore()->Clear();
@@ -10704,8 +10713,8 @@ void CX2Game::SetGameScore( int gameScore )
 			)
 		{
 			WCHAR texBuf[30] = {0,};
-			StringCchPrintf( texBuf, 30, L"%09d", m_GameScore );
-			//wsprintf( texBuf, L"%09d", m_GameScore );
+			//StringCchPrintf( texBuf, 30, L"%09d", m_GameScore );
+			wsprintf( texBuf, L"%09d", m_GameScore );
 			if( NULL != g_pData->GetPicCharGameScore() )
 			{
 				g_pData->GetPicCharGameScore()->Clear();
@@ -10720,7 +10729,7 @@ void CX2Game::AddGameScore( int gameScore )
 	m_GameScoreBack = m_GameScore;
 	m_GameScore		+= gameScore; 
 
-	return;
+	//return;
 
 #ifdef DIALOG_SHOW_TOGGLE	
 	if( g_pKTDXApp->GetDGManager()->GetDialogManager()->GetHideDialog() == true )
@@ -10740,12 +10749,12 @@ void CX2Game::AddGameScore( int gameScore )
 			)
 		{
 			WCHAR texBuf[30] = {0,};
-			StringCchPrintf( texBuf, 30, L"%09d", m_GameScore );
-			//wsprintf( texBuf, L"%09d", m_GameScore );
+			//StringCchPrintf( texBuf, 30, L"%09d", m_GameScore );
+			wsprintf( texBuf, L"%09d", m_GameScore );
 			if( NULL != g_pData->GetPicCharGameScore() )
 			{
-				//g_pData->GetPicCharGameScore()->Clear();
-				//g_pData->GetPicCharGameScore()->DrawText( texBuf, D3DXVECTOR3(290,-40,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_LEFT, 0.03f );
+				g_pData->GetPicCharGameScore()->Clear();
+				g_pData->GetPicCharGameScore()->DrawText( texBuf, D3DXVECTOR3(290,-40,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_LEFT, 0.03f );
 			}
 		}
 
@@ -10791,11 +10800,17 @@ void CX2Game::SetTechPoint( int techPoint )
 	if( NULL != g_pData->GetPicCharTechPoint() )
 	{
 		g_pData->GetPicCharTechPoint()->Clear();
-		g_pData->GetPicCharTechPoint()->DrawText( m_TechPoint, D3DXVECTOR3(185,310,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_LEFT );
+		g_pData->GetPicCharTechPoint()->DrawText( m_TechPoint, D3DXVECTOR3(185,330,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_LEFT );
 	}
 
 	if( m_fTechPointViewTime <= 0.0f )
 	{
+		CKTDGParticleSystem::CParticleEventSequence* pSeq = GetMajorParticle()->GetInstanceSequence( m_hSeqTech );
+		if( NULL != pSeq )
+		{
+			pSeq->ClearAllParticle();
+			pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+		}
 	}
 
 	m_fTechPointViewTime = 1.5f;
@@ -10815,6 +10830,27 @@ void CX2Game::AddTechPoint( int techPoint )
 	}
 #endif
 
+
+	if( NULL != g_pData->GetPicCharTechPoint() )
+	{
+		g_pData->GetPicCharTechPoint()->Clear();
+		g_pData->GetPicCharTechPoint()->DrawText( m_TechPoint, D3DXVECTOR3(185,360,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_LEFT );
+	}
+
+	if( INVALID_PARTICLE_SEQUENCE_HANDLE != m_hSeqTech )
+	{
+		if( m_fTechPointViewTime <= 0.0f )
+		{
+
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = GetMajorParticle()->GetInstanceSequence( m_hSeqTech );
+			if( NULL != pSeq )
+			{
+				pSeq->ClearAllParticle();
+				pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+			}
+
+		}
+	}
 
 	m_fTechPointViewTime = 1.5f;
 }

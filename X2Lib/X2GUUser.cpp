@@ -288,6 +288,28 @@ namespace _CONST_CUTIN_
 		L"Soma_02",
 		L"Soma_03",
 	};
+#ifdef NEW_CHARACTER_EL
+	static const wstring s_SkillCutInElesis[] =
+	{
+		L"Elesis_01",
+		L"Elesis_02",
+		L"Elesis_03",
+	};
+
+	static const wstring s_SkillCutInSaberKnight[] =
+	{
+		L"Saber_Knight_01",
+		L"Saber_Knight_02",
+		L"Saber_Knight_03",
+	};
+
+	static const wstring s_SkillCutInPyroKnight[] =
+	{
+		L"Pyro_Knight_01",
+		L"Pyro_Knight_02",
+		L"Pyro_Knight_03",
+	};
+#endif NEW_CHARACTER_EL
 }
 #endif _CLASS_CUTIN_
 
@@ -457,6 +479,19 @@ wstring CX2GUUser::GetCutInFileName(bool IsRight)
 	case CX2Unit::UC_ARA_YAMA_RAJA:
 		wstrCutIn += _CONST_CUTIN_::s_SkillCutInSoma[texID];
 		break;
+#ifdef NEW_CHARACTER_EL
+	case CX2Unit::UC_ELESIS_KNIGHT:
+		wstrCutIn += _CONST_CUTIN_::s_SkillCutInElesis[texID];
+		break;
+	case CX2Unit::UC_ELESIS_SABER_KNIGHT:
+	case CX2Unit::UC_ELESIS_GRAND_MASTER:
+		wstrCutIn += _CONST_CUTIN_::s_SkillCutInSaberKnight[texID];
+		break;
+	case CX2Unit::UC_ELESIS_PYRO_KNIGHT:
+	case CX2Unit::UC_ELESIS_BLAZING_HEART:
+		wstrCutIn += _CONST_CUTIN_::s_SkillCutInPyroKnight[texID];
+		break;		
+#endif NEW_CHARACTER_EL
 	}
 	return wstrCutIn;
 }
@@ -1895,13 +1930,6 @@ void CX2GUUser::ReInit( bool bUseTeamPos, int startPosIndex )
 	{
 		ResetMaxHP();
 		m_LuaManager.GetValue( "MP_CHANGE_RATE",		m_fOriginalMPChangeRate );
-
-		//{{ Iruha : 2026-09-04 // raise the base MP regen rate loaded from the class Lua
-#ifdef SERV_IRUHADEV_MP_REGEN_BOOST
-		if( m_fOriginalMPChangeRate < SERV_IRUHADEV_BASE_MP_REGEN_PER_SEC )
-			m_fOriginalMPChangeRate = SERV_IRUHADEV_BASE_MP_REGEN_PER_SEC;
-#endif SERV_IRUHADEV_MP_REGEN_BOOST
-		//}} Iruha : 2026-09-04
 		
 		//{{ kimhc // 2010.06.04 // 드래고닉셋트효과 아이템 버그 수정
 #ifdef SERV_SECRET_HELL
@@ -3776,13 +3804,6 @@ void CX2GUUser::InitComponent()
 		//ResetMaxHP();
 		m_LuaManager.GetValue( "MP_CHANGE_RATE",		m_fOriginalMPChangeRate );
 
-		//{{ Iruha : 2026-09-04 // raise the base MP regen rate loaded from the class Lua
-#ifdef SERV_IRUHADEV_MP_REGEN_BOOST
-		if( m_fOriginalMPChangeRate < SERV_IRUHADEV_BASE_MP_REGEN_PER_SEC )
-			m_fOriginalMPChangeRate = SERV_IRUHADEV_BASE_MP_REGEN_PER_SEC;
-#endif SERV_IRUHADEV_MP_REGEN_BOOST
-		//}} Iruha : 2026-09-04
-
 	//{{ kimhc // 2010.6.14	// 드래고닉셋트 효과 적용 여부 포함 
 	// GetOriginalMPChangeRate() 에서 드래고닉셋트 효과가 아직 적용 중인지를 판단함
 #ifdef	SERV_SECRET_HELL
@@ -3849,17 +3870,6 @@ void CX2GUUser::InitComponent()
 							m_pGageData = CX2GageManager::GetInstance()->GetMyGageData()->GetCloneGageData();
 						ResetMaxHP();
 						ResetMaxMP();
-
-						//{{ Iruha : 2026-09-04 // the clone above replaces the whole gage
-						//   data, so it discards the MP change rate set from the class Lua
-						//   further up this function. ResetMaxHP/ResetMaxMP/SetNowHp/SetNowMp
-						//   restore the maxima and the current values, but nothing restores
-						//   the rate -- the clone carries the manager's, which is the 1.0f
-						//   default out of CX2GageData::Gage::Init(). Put it back.
-#ifdef SERV_IRUHADEV_MP_REGEN_BOOST
-						ResetMPChangeRate( GetOriginalMPChangeRate() );
-#endif SERV_IRUHADEV_MP_REGEN_BOOST
-						//}} Iruha : 2026-09-04
 						SetNowHp( GetMaxHp() * CX2GageManager::GetInstance()->GetMyNowHpPercent() );
 						SetNowMp( GetMaxMp() * CX2GageManager::GetInstance()->GetMyNowMpPercent() );
 					}
@@ -3870,7 +3880,7 @@ void CX2GUUser::InitComponent()
 		m_LuaManager.GetValue( "MP_CHARGE_RATE",		fData );
 		SetChangeRateChargeMpForDetonation( fData ); 
 
-		SetMaxForceDown( 100.f );
+		SetMaxForceDown( 200.f );
 		SetNowForceDown( 0.f );
 
 		GetGageData()->SetEnable( true );
@@ -4494,8 +4504,8 @@ void CX2GUUser::AppendMotionToDeviceList( CKTDXDeviceDataList& listInOut_, CX2Un
 		case 2:
 			if ( pUnitTemplet->m_GameMotion2.empty() == false )
 			{
-				g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion2 );
-			}//if
+				g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion2 );				
+			}//if			
 			break;					
 		case 1:
 			if ( pUnitTemplet->m_GameMotion1.empty() == false )
@@ -4506,6 +4516,38 @@ void CX2GUUser::AppendMotionToDeviceList( CKTDXDeviceDataList& listInOut_, CX2Un
 		default:
 			break;
 		}
+		if ( pUnitTemplet->m_GameMotion3.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion3 );
+		}
+		if ( pUnitTemplet->m_GameMotion4.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion4 );
+		}
+		if ( pUnitTemplet->m_GameMotion5.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion5 );
+		}
+		if ( pUnitTemplet->m_GameMotion6.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion6 );
+		}
+		if ( pUnitTemplet->m_GameMotion7.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion7 );
+		}
+		if ( pUnitTemplet->m_GameMotion8.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion8 );
+		}
+		if ( pUnitTemplet->m_GameMotion9.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion9 );
+		}
+		if ( pUnitTemplet->m_GameMotion10.empty() == false )
+		{	
+			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_GameMotion10 );
+		}		
 		if ( pUnitTemplet->m_EmotionMotion.empty() == false )
 		{
 			g_pKTDXApp->GetDeviceManager()->AppendXSkinMesh( listInOut_, pUnitTemplet->m_EmotionMotion );
@@ -4550,7 +4592,15 @@ void CX2GUUser::InitMotion()
 		default:
 			break;
 		}
-		
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion3 );
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion4 );
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion5 );
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion6 );
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion7 );
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion8 );
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion9 );
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_GameMotion10 );	
+		vecMotion.push_back( m_pUnit->GetUnitTemplet()->m_EmotionMotion );
 		vecMotion.push_back( GetUnit()->GetUnitTemplet()->m_EmotionMotion );
 
 		if( GetUnit()->GetUnitTemplet()->m_GameMotion0 == L"" )
@@ -5396,7 +5446,7 @@ void CX2GUUser::ProcessAcceleraterBuff( CX2SkillTree::SKILL_ID eSkillID, bool bH
 
 	switch ( eSkillID )
 	{
-#ifndef UPGRADE_SKILL_SYSTEM_2013 //JHKang
+#ifdef UPGRADE_SKILL_SYSTEM_2013 //JHKang
 	case CX2SkillTree::SI_SA_COMMON_POWER_ACCEL:
 	case CX2SkillTree::SI_SA_COMMON_MAGIC_ACCEL:
 	case CX2SkillTree::SI_SA_COMMON_SHIELD_ACCEL:
@@ -5405,10 +5455,10 @@ void CX2GUUser::ProcessAcceleraterBuff( CX2SkillTree::SKILL_ID eSkillID, bool bH
 			ApplyAcceleratorBuffToGameUnit( pSkillTemplet, GetAdditionalAccelBuffTime( eSkillID ), vMyPos );
 		}
 		break;
-	case CX2SkillTree::SI_SA_COMMON_AURA_POWER_ACCEL:
-	case CX2SkillTree::SI_SA_COMMON_AURA_MAGIC_ACCEL:
-	case CX2SkillTree::SI_SA_COMMON_AURA_SHIELD_ACCEL:
-	case CX2SkillTree::SI_SA_COMMON_AURA_SPEED_ACCEL:
+	//case CX2SkillTree::SI_SA_COMMON_AURA_POWER_ACCEL:
+	//case CX2SkillTree::SI_SA_COMMON_AURA_MAGIC_ACCEL:
+	//case CX2SkillTree::SI_SA_COMMON_AURA_SHIELD_ACCEL:
+	//case CX2SkillTree::SI_SA_COMMON_AURA_SPEED_ACCEL:
 #endif //UPGRADE_SKILL_SYSTEM_2013
 
 #ifdef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
@@ -5432,7 +5482,7 @@ void CX2GUUser::ProcessAcceleraterBuff( CX2SkillTree::SKILL_ID eSkillID, bool bH
 			/// 액셀러레이터의 경우 추가 시간을 구함
 			ApplyAuraAcceleratorBuffToGameUnit( pSkillTemplet, GetAdditionalAccelBuffTime( eSkillID ), vMyPos );
 		} break;
-#ifndef UPGRADE_SKILL_SYSTEM_2013 //JHKang
+#ifdef UPGRADE_SKILL_SYSTEM_2013 //JHKang
 	case CX2SkillTree::SI_SA_COMMON_POWER_ADRENALIN:
 	case CX2SkillTree::SI_SA_COMMON_MAGIC_ADRENALIN:
 	case CX2SkillTree::SI_SA_COMMON_SHIELD_ADRENALIN:
@@ -11570,14 +11620,14 @@ void CX2GUUser::DamageReactStateChange( CX2DamageManager::DamageData* pDamageDat
 		if ( IsSuperArmor() )
 			break;
 
-		if( m_FlyCount > 2 )
+		if( m_FlyCount >= 1 )
 		{
-			m_PhysicParam.nowSpeed.y = pDamageData->backSpeed.y / (m_FlyCount - 1);
+			m_PhysicParam.nowSpeed.y = pDamageData->backSpeed.y;
 		}
 		else
 		{
 			m_PhysicParam.nowSpeed.y = pDamageData->backSpeed.y;
-		}			
+		}					
 
 		ResetOnSomethingFuture();
 
@@ -11617,9 +11667,9 @@ void CX2GUUser::DamageReactStateChange( CX2DamageManager::DamageData* pDamageDat
 		if ( IsSuperArmor() )
 			break;
 
-		if( m_FlyCount > 2 )
+		if( m_FlyCount >= 1 )
 		{
-			m_PhysicParam.nowSpeed.y = pDamageData->backSpeed.y / (m_FlyCount - 1);
+			m_PhysicParam.nowSpeed.y = pDamageData->backSpeed.y;
 		}
 		else
 		{
@@ -11893,10 +11943,10 @@ void CX2GUUser::DamageReactStateChange( CX2DamageManager::DamageData* pDamageDat
 
 	if( true == IsDamagedReaction( pDamageData ) )
 	{
-		if( DamageFlushMp()== true )
+		if( m_OrgInputData.pureZ == true && DamageFlushMp()== true )
 		{
-			DetonationStateChange( pDamageData );
-		}
+			DetonationStateChangeKeyZ( pDamageData );			
+		}		
 		else if( FlushForceDown() == true )
 		{
 			if( true == IsOnSomethingFuture() )
@@ -11950,11 +12000,99 @@ void CX2GUUser::DamageReactStateChange( CX2DamageManager::DamageData* pDamageDat
 	}
 #endif
 }
+
+/*virtual*/ bool CX2GUUser::DamageFlushMp_KeyX()
+{
+	// 기폭 : 모인 만큼 터지게 변경
+	if( GetGageData()->GetNowChargeMpForDetonation() >= 199.f )	
+	{
+#ifdef FIX_FORCE_DOWN_AND_DETONATION_BUG
+		GetGageData()->SetActivateDetonation( true, GetGageData()->GetNowChargeMpForDetonation() );
+#else
+		UpNowMp( GetGageData()->GetNowChargeMpForDetonation() * -1 );
+		GetGageData()->SetNowChargeMpForDetonation( 0.0f );
+#endif // FIX_FORCE_DOWN_AND_DETONATION_BUG
+
+		return true;
+	}
+	else
+		return false;
+}
+
 /** @function : DetonationStateChange()
 	@brief : 디토네이션에 의한 스테이트 변경 처리.
 			 엘리시스 검의길 효과 구현을 위해 가상함수 처리
 */
-/*virtual*/ void CX2GUUser::DetonationStateChange( CX2DamageManager::DamageData* pDamageData )
+
+void CX2GUUser::DetonationStateChangeStart()
+{	
+	m_fGroggyTime = 0.f;
+	m_PhysicParam.nowSpeed.x = 0.0f;
+	m_PhysicParam.nowSpeed.y = 0.0f;
+
+	CureExtraDamage( CX2DamageManager::EDT_ENCHANT_SHOCK );
+	CureExtraDamage( CX2DamageManager::EDT_FROZEN );
+	CureExtraDamage( CX2DamageManager::EDT_ENTANGLE );
+	CureExtraDamage( CX2DamageManager::EDT_DRYAD );
+	CureExtraDamage( CX2DamageManager::EDT_STUN );
+	CureExtraDamage( CX2DamageManager::EDT_Y_PRESSED );
+	CureExtraDamage( CX2DamageManager::EDT_PANIC );
+
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_STUN);	
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_PANIC);	
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_COLD);	
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_CONFUSION);	
+	EraseBuffTempletFromGameUnit(BTI_BUFF_INDURANCE_POWER);	
+
+	CommonStateStart();
+}
+
+void CX2GUUser::DetonationStateChangeFramemove()
+{	
+	if( m_pXSkinAnim->GetNowAnimationTime() >= 0.f )
+	{
+		UpNowMp( GetGageData()->GetNowChargeMpForDetonation() * -1 );
+		GetGageData()->SetNowChargeMpForDetonation( 0.0f );
+	}
+	CommonFrameMove();
+	
+}
+
+void CX2GUUser::DetonationStateChangeInit()
+{
+	TextureReadyInBackground(L"Arme_Ring2.dds");
+	TextureReadyInBackground(L"ColorBallGray.dds");
+	XSkinMeshReadyInBackground(L"HummingWind_AttackBox.X");
+}
+void CX2GUUser::DetonationStateChangeEventProcess()
+{
+// 극기 상태에서 피격시 활성화 되는 스테이트 
+ 	if( false == IsOnSomethingFuture() )
+ 	{
+		StateChange( GetJumpDownStateID() );
+ 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * 1.5f;
+ 	}
+	else if ( true == m_pXSkinAnimFuture->IsAnimationEnd() )
+	{
+		StateChange( GetWaitStateID() );
+	}
+	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+		WALK_CANCEL_AFTER( m_fWalkCancelAfter )
+		BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+		DASH_CANCEL_AFTER( m_fDashCancelAfter )
+		ZX_CANCEL_AFTER_EX( m_fAttackCancelAfterEx )
+
+	CommonEventProcess();
+}	
+
+void CX2GUUser::DetonationStateChangeEnd()
+{	
+	CommonStateEnd();
+	SetForceInvincible( 0.6f );
+	SetShowInvincible( 0.6f );
+}
+
+/*virtual*/ void CX2GUUser::DetonationStateChangeKeyZ( CX2DamageManager::DamageData* pDamageData )
 {
 	if( NULL == pDamageData )
 		return;
@@ -12012,6 +12150,11 @@ void CX2GUUser::DamageReactStateChange( CX2DamageManager::DamageData* pDamageDat
 	{
 		pSeq->SetLandPosition( m_FrameDataNow.unitCondition.landPosition.y );
 	}
+}
+
+/*virtual*/ void CX2GUUser::DetonationStateChange( CX2DamageManager::DamageData* pDamageData )
+{	
+	StateChange( GetManaBreakID() );
 }
 //{{ kimhc // 2011-05-25 // SetOption, TitleOption에만 적용 되는 option 모든 itemOption에 적용 되도록 수정
 
@@ -19242,7 +19385,17 @@ void CX2GUUser::CommonCameraMove()
 		return;
 #endif //NO_DETONATION
 
+	/**
 	if( m_OrgInputData.pureZ == true || m_OrgInputData.pureX == true )
+	{
+		GetGageData()->SetCanChargeMpForDetonation( true );
+	}
+	**/
+	if( m_OrgInputData.pureZ == true )
+	{
+		GetGageData()->SetCanChargeMpForDetonation( true );
+	}
+	else if( m_OrgInputData.pureX == true )
 	{
 		GetGageData()->SetCanChargeMpForDetonation( true );
 	}
@@ -25486,6 +25639,17 @@ void CX2GUUser::JumpFrameMoveFuture()
 	CommonFrameMoveFuture();
 }
 
+void CX2GUUser::JumpFrameMove()
+{
+	if( m_pXSkinAnim->EventTimerOneshot( 0.001f ) == true )
+	{
+		//g_pX2Game->GetEffectSet()->PlayEffectSet( L"EffectSet_ELSWORD_ENDURANCE", this ); 
+		SetForceInvincible( 1.2f );
+		SetShowInvincible( 1.2f );
+	}
+	CommonFrameMove();
+}
+
 /** @function : JumpLandingStart
 	@brief : 착지 상태의 Start 함수 (먼지 파티클 출력)
 */
@@ -25605,7 +25769,14 @@ void CX2GUUser::DamageAirSmallEventProcess()
 	{
 		StateChange( USI_JUMP_LANDING );
 	}
-
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( GetRecoveryID() );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
 	CommonEventProcess();
 }
 
@@ -25639,7 +25810,14 @@ void CX2GUUser::DamageAirDownInvincibleEventProcess()
 	{
 		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
 	}
-
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( GetRecoveryID() );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
 	CommonEventProcess();
 }
 
@@ -25717,7 +25895,14 @@ void CX2GUUser::DamageAirFallEventProcess()
 	{
 		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
 	}
-
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( GetRecoveryID() );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
 	CommonEventProcess();
 }
 
@@ -25738,7 +25923,14 @@ void CX2GUUser::DamageAirUpEventProcess()
 	{
 		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
 	}
-
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( GetRecoveryID() );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
 	CommonEventProcess();
 }
 
@@ -25771,7 +25963,14 @@ void CX2GUUser::DamageAirFlyEventProcess()
 				StateChange( USI_DAMAGE_DOWN_FRONT );
 		}
 	}
-	
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( GetRecoveryID() );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
 	CommonEventProcess();
 }
 
@@ -36124,6 +36323,14 @@ void CX2GUUser::ForceDownAndDetonationProcess()
 	case USI_DAMAGE_DOWN_FRONT:
 	case USI_DAMAGE_DOWN_BACK:
 	case USI_DAMAGE_AIR_DOWN_INVINCIBLE:
+	case CX2GUElsword_SwordMan::ESSI_DESTRUCTION_RAGE:
+	case CX2GUArme_VioletMage::USI_DAMAGE_RAGE:
+	case CX2GULire_ElvenRanger::USI_MANA_BREAK:
+	case CX2GUEve::USI_DAMAGE_RAGE:
+	case CX2GUChung::USI_DAMAGE_RAGE:
+	case CX2GURaven::USI_DAMAGE_RAGE:
+	case CX2GUAra::USI_DAMAGE_RAGE:		
+	case CX2GUEL::ESI_SA_A_EL_ENDURANCE_POWER_ACTIVE:	
 #ifdef RIDING_SYSTEM
 	case USI_RIDING_DAMAGE_FRONT:
 	case USI_RIDING_DAMAGE_BACK:

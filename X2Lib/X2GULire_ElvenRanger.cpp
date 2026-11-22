@@ -411,6 +411,13 @@ void CX2GULire_ElvenRanger::DamageReact( CX2DamageManager::DamageData* pDamageDa
 	KTDXPROFILE();
 	CX2GUUser::DamageReact( pDamageData );
 	CX2GUUser::DamageReactStateChange( pDamageData );
+	
+	if( m_OrgInputData.pureX == true && DamageFlushMp_KeyX()== true )
+	{
+		DetonationStateChange( pDamageData );
+		
+		return;			
+	}
 
 #ifdef NEW_SKILL_2010_11
 	// oasis907 : ±è»óÀ± [2010.11.4] // À©µå ½º´ÏÄ¿ - ÀÚ¿¬°úÀÇ Ä£È­(ÆÐ½Ãºê)
@@ -989,8 +996,24 @@ void CX2GULire_ElvenRanger::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
+	stateData.stateID			= USI_JUMP_UP_RECOVERY;
+	m_LuaManager.MakeTableReference( "LESI_JUMP_UP_RECOVERY", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, JumpDownEventProcess );
+
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
 	stateData.stateID			= USI_JUMP_DOWN;
 	m_LuaManager.MakeTableReference( "LESI_JUMP_DOWN", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, JumpDownEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
+	stateData.stateID			= USI_JUMP_DOWN_CANCEL;
+	m_LuaManager.MakeTableReference( "LESI_JUMP_DOWN_CANCEL", stateData.stateID );
 	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, JumpDownEventProcess );
 	m_StateList[stateData.stateID] = stateData;
@@ -1121,6 +1144,23 @@ void CX2GULire_ElvenRanger::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
+	stateData.stateID			= USI_MANA_BREAK;
+	m_LuaManager.MakeTableReference( "LESI_MANA_BREAK", stateData.stateID );
+	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeStart );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeFramemove );
+	stateData.StateInit			= SET_CB_FUNC( CX2GUUser, DetonationStateChangeInit );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEventProcess );
+	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEnd );
+	m_StateList[stateData.stateID] = stateData;
+	
+	stateData.Init();
+	stateData.stateID			= USI_CANCEL_MODE;
+	m_LuaManager.MakeTableReference( "LESI_COMBO_CANCEL", stateData.stateID );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GULire_ElvenRanger, COMMON_BUFF_FrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, COMMON_BUFF_EventProcess );	
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
 	stateData.stateID			= USI_DASH_JUMP_LANDING;
 	m_LuaManager.MakeTableReference( "LESI_DASH_JUMP_LANDING", stateData.stateID );
 	stateData.StateStartFuture	= SET_CB_FUNC( CX2GUUser, DashJumpLandingStartFuture );
@@ -1186,7 +1226,7 @@ void CX2GULire_ElvenRanger::InitStateCommon()
 	stateData.stateID			= USI_DAMAGE_AIR_SMALL;
 	m_LuaManager.MakeTableReference( "LESI_DAMAGE_AIR_SMALL", stateData.stateID );
 	stateData.StateStartFuture	= SET_CB_FUNC( CX2GUUser, DamageAirSmallStartFuture );
-	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageAirSmallEventProcess );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, DamageAirSmallEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -1198,7 +1238,7 @@ void CX2GULire_ElvenRanger::InitStateCommon()
 	stateData.Init();
 	stateData.stateID			= USI_DAMAGE_AIR_DOWN_INVINCIBLE;
 	m_LuaManager.MakeTableReference( "LESI_DAMAGE_AIR_DOWN_INVINCIBLE", stateData.stateID );
-	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageAirDownInvincibleEventProcess );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, DamageAirDownInvincibleEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -1213,25 +1253,25 @@ void CX2GULire_ElvenRanger::InitStateCommon()
 	stateData.Init();
 	stateData.stateID			= USI_DAMAGE_AIR_FALL;
 	m_LuaManager.MakeTableReference( "LESI_DAMAGE_AIR_FALL", stateData.stateID );
-	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageAirFallEventProcess );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, DamageAirFallEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
 	stateData.stateID			= USI_DAMAGE_AIR_UP;
 	m_LuaManager.MakeTableReference( "LESI_DAMAGE_AIR_UP", stateData.stateID );
-	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageAirUpEventProcess );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, DamageAirUpEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
 	stateData.stateID			= USI_DAMAGE_AIR_FLY_FRONT;
 	m_LuaManager.MakeTableReference( "LESI_DAMAGE_AIR_FLY_FRONT", stateData.stateID );
-	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageAirFlyEventProcess );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, DamageAirFlyEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
 	stateData.stateID			= USI_DAMAGE_AIR_FLY_BACK;
 	m_LuaManager.MakeTableReference( "LESI_DAMAGE_AIR_FLY_BACK", stateData.stateID );
-	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageAirFlyEventProcess );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GULire_ElvenRanger, DamageAirFlyEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -5205,6 +5245,78 @@ void CX2GULire_ElvenRanger::CommonStateEnd()
 	CX2GUUser::CommonStateEnd();
 }
 
+/*virtual*/ void CX2GULire_ElvenRanger::DetonationStateChange( CX2DamageManager::DamageData* pDamageData )
+{		
+		SetNowChargeMpForDetonation( 0.f );
+		StateChange( USI_MANA_BREAK, true  );
+}
+
+void CX2GULire_ElvenRanger::DetonationStateChangeStart()
+{	
+	m_fGroggyTime = 0.f;
+	m_PhysicParam.nowSpeed.x = 0.0f;
+	m_PhysicParam.nowSpeed.y = 0.0f;
+
+	CureExtraDamage( CX2DamageManager::EDT_ENCHANT_SHOCK );
+	CureExtraDamage( CX2DamageManager::EDT_FROZEN );
+	CureExtraDamage( CX2DamageManager::EDT_ENTANGLE );
+	CureExtraDamage( CX2DamageManager::EDT_DRYAD );
+	CureExtraDamage( CX2DamageManager::EDT_STUN );
+	CureExtraDamage( CX2DamageManager::EDT_Y_PRESSED );
+	CureExtraDamage( CX2DamageManager::EDT_PANIC );
+
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_STUN);	
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_PANIC);	
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_COLD);	
+	EraseBuffTempletFromGameUnit(BTI_DEBUFF_CONFUSION);	
+	EraseBuffTempletFromGameUnit(BTI_BUFF_INDURANCE_POWER);	
+
+	CommonStateStart();
+}
+
+void CX2GULire_ElvenRanger::DetonationStateChangeFramemove()
+{	
+	if( m_pXSkinAnim->GetNowAnimationTime() >= 0.f )
+	{		
+		UpNowMp( -200.f );
+	}
+	CommonFrameMove();
+	
+}
+
+void CX2GULire_ElvenRanger::DetonationStateChangeInit()
+{
+	TextureReadyInBackground(L"Arme_Ring2.dds");
+	TextureReadyInBackground(L"ColorBallGray.dds");
+	XSkinMeshReadyInBackground(L"HummingWind_AttackBox.X");
+}
+void CX2GULire_ElvenRanger::DetonationStateChangeEventProcess()
+{
+// ±Ø±â »óÅÂ¿¡¼­ ÇÇ°Ý½Ã È°¼ºÈ­ µÇ´Â ½ºÅ×ÀÌÆ® 
+ 	if( false == IsOnSomethingFuture() )
+ 	{
+		StateChange( GetJumpDownStateID() );
+ 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * 1.5f;
+ 	}
+	else if ( true == m_pXSkinAnimFuture->IsAnimationEnd() )
+	{
+		StateChange( GetWaitStateID() );
+	}
+	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+		WALK_CANCEL_AFTER( m_fWalkCancelAfter )
+		BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+		DASH_CANCEL_AFTER( m_fDashCancelAfter )
+		ZX_CANCEL_AFTER_EX( m_fAttackCancelAfterEx )
+
+	CommonEventProcess();
+}	
+
+void CX2GULire_ElvenRanger::DetonationStateChangeEnd()
+{	
+	CommonStateEnd();
+	SetForceInvincible( 0.6f );
+	SetShowInvincible( 0.6f );
+}
 //{{ robobeg : 2008-10-28
 //void CX2GULire_ElvenRanger::CommonRender()
 /*virtual*/
@@ -5847,6 +5959,14 @@ void CX2GULire_ElvenRanger::JumpReadyEventProcess()
 		StateChange( USI_JUMP_DOWN );
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * 1.5f;
 	}
+	else if( SpecialAttackEventProcess() == true )
+	{
+	}
+	else if( m_InputData.oneDown == true )
+	{
+		m_fCanNotJumpTime = 0.2f;
+		StateChange( GetJumpDownCancelID() );		
+	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true
 		|| m_InputData.pureRight == true
 		|| m_InputData.pureLeft == true )
@@ -5858,7 +5978,39 @@ void CX2GULire_ElvenRanger::JumpReadyEventProcess()
 
 	CommonEventProcess();
 }
+void CX2GULire_ElvenRanger::USI_JumpUpEventProcess()
+{
+	if( m_InputData.pureDoubleLeft == true || m_InputData.pureDoubleRight == true )
+	{
+		if( GetEnableDash() == true )
+		{
+			StateChange( USI_DASH_JUMP );
+		}
+	}
+	else if( m_InputData.oneZ == true )
+	{
+		StateChange( LESI_JUMP_ATTACK_Z );
+	}
+	else if( m_InputData.oneX == true )
+	{
+		StateChange( LESI_JUMP_ATTACK_X );
+	}
+	else if( true == SpecialAttackEventProcess( CX2SkillTree::ASUT_AIR ) )
+	{
+	}
+	else if( m_PhysicParam.nowSpeed.y <= 0.0f )
+	{
+		StateChange( USI_JUMP_DOWN );
+	}
+#ifdef RIDING_SYSTEM
+	else if ( true == GetRidingOn() )
+	{
+		StateChange( USI_RIDING_ON );
+	}
+#endif //RIDING_SYSTEM
 
+	CommonEventProcess();
+}
 void CX2GULire_ElvenRanger::JumpUpEventProcess()
 {
 #ifdef WALL_JUMP_TEST
@@ -6329,11 +6481,11 @@ void CX2GULire_ElvenRanger::DashJumpFrameMoveFuture()
 {
 	if( m_InputData.pureRight == true && m_FrameDataFuture.syncData.bIsRight	== true )
 	{
-		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.3f;
+		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.6f;
 	}
 	else if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight	== false )
 	{
-		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.3f;
+		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.6f;
 	}
 
 	CommonFrameMoveFuture();
@@ -6349,9 +6501,9 @@ void CX2GULire_ElvenRanger::DashJumpEventProcess()
 		m_bDisableGravity = true;
 		StateChange( LESI_WALL_LANDING );
 	}
-	else if( m_InputData.oneUp == true )
+	else if( m_InputData.oneDoubleUp == true )
 #else
-	if( m_InputData.oneUp == true && m_iDoubleJumpCount == 0 )
+	if( m_InputData.oneDoubleUp == true && m_iDoubleJumpCount == 0 )
 #endif WALL_JUMP_TEST
 	{
 		StateChange( LESI_DASH_DOUBLE_JUMP );
@@ -6443,7 +6595,7 @@ void CX2GULire_ElvenRanger::DashJumpEventProcess()
 #endif //RIDING_SYSTEM
 
 
-	if( m_InputData.oneUp == true && m_FrameDataFuture.syncData.position.y - m_FrameDataFuture.unitCondition.landPosition.y < LINE_RADIUS * 2.0f )
+	if( m_InputData.oneUp == true && m_PhysicParam.nowSpeed.y <= 0.0f )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = true;
 	}
@@ -6753,7 +6905,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_LESI_DOUBLE_JUMP_ATTACK_Z_EventPr
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS/2.0f;
 	}
 
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	const float fNowAnimationTime = m_pXSkinAnimFuture->GetNowAnimationTime();
 	if( m_InputData.oneZ == true && ( fNowAnimationTime > m_fEventTime[0].keyInputStart && fNowAnimationTime < m_fEventTime[0].keyInputEnd ) )
 	{
@@ -6784,7 +6936,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_LESI_DOUBLE_JUMP_ATTACK_Z_UP_Even
 			StateChange( USI_WAIT );
 		}
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -7496,6 +7648,157 @@ void CX2GULire_ElvenRanger::HyperModeFrameMove()
 	CommonFrameMove();
 #endif // MODIFY_RIDING_PET_AWAKE
 
+}
+void CX2GULire_ElvenRanger::DamageAirSmallEventProcess()
+{
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_JUMP_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );		
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	CommonEventProcess();
+}
+
+/** @function : DamageAirDownEventProcess
+	@brief : °øÁß¿¡ ´Ù¿î Å¸°ÝÀ» ¹Þ¾ÒÀ» ¶§ÀÇ EventProcess
+*/
+void CX2GULire_ElvenRanger::DamageAirDownEventProcess()
+{
+//#ifdef LINEMAP_FAST_WIND_TEST
+//	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+//#endif LINEMAP_FAST_WIND_TEST
+
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+
+	CommonEventProcess();
+}
+
+/** @function : DamageAirDownInvincibleEventProcess
+	@brief : °øÁß¿¡ ´Ù¿î Å¸°ÝÀ» ¹Þ¾ÒÀ» ¶§ ¹«Àû »óÅÂÀÇ EventProcess
+*/
+void CX2GULire_ElvenRanger::DamageAirDownInvincibleEventProcess()
+{
+//#ifdef LINEMAP_FAST_WIND_TEST
+//	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+//#endif LINEMAP_FAST_WIND_TEST
+
+	if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );				
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	CommonEventProcess();
+}
+
+/** @function : DamageAirFallEventProcess
+	@brief : UP TypeÀÇ °ø°Ý¿¡ ÀÇÇØ ¼öÁ÷À¸·Î ¿Ã¶ó°¬´Ù°¡ ¶³¾îÁö´Â ½ºÅ×ÀÌÆ®
+*/
+void CX2GULire_ElvenRanger::DamageAirFallEventProcess()
+{
+//#ifdef LINEMAP_FAST_WIND_TEST
+//	m_bEnableUpsideWind = false;
+//#endif LINEMAP_FAST_WIND_TEST
+
+	if( 0.f < m_PhysicParam.nowSpeed.y )
+	{
+		StateChange( USI_DAMAGE_AIR_UP );
+	}
+	else if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );				
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	CommonEventProcess();
+}
+
+/** @function : DamageAirUpEventProcess 
+	@brief : UP TypeÀÇ °ø°ÝÀ» ¹ÞÀº »óÅÂÀÇ EventProcess
+*/
+void CX2GULire_ElvenRanger::DamageAirUpEventProcess()
+{
+//#ifdef LINEMAP_FAST_WIND_TEST
+//	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+//#endif LINEMAP_FAST_WIND_TEST
+
+	if( 0.f > m_PhysicParam.nowSpeed.y )
+	{
+		StateChange( USI_DAMAGE_AIR_FALL );
+	}
+	else if( true == IsOnSomethingFuture() )
+	{
+		StateChange( USI_DAMAGE_AIR_DOWN_LANDING );
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+		m_PhysicParam.nowSpeed.y = GetJumpSpeed() / 2.5f;
+		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
+	}	
+	CommonEventProcess();
+}
+
+/** @function : DamageAirFlyEventProcess
+	@brief : Fly TypeÀÇ °ø°ÝÀ» ¹ÞÀº »óÅÂÀÇ EventProcess
+*/
+void CX2GULire_ElvenRanger::DamageAirFlyEventProcess()
+{
+//#ifdef LINEMAP_FAST_WIND_TEST
+//	IF_TIME_ELAPSED_IN_THE_AIR_THEN_STATE_CHANGE( 1.f, USI_JUMP_DOWN )
+//#endif LINEMAP_FAST_WIND_TEST
+
+	if( true == IsOnSomethingFuture() )
+	{
+		//{{ kimhc // 2010.7.12 // ¿©·¯¸íÀÇ À¯Àú¸¦ HOLD ÇÒ ¼ö ÀÖµµ·Ï ÇÔ
+		if ( false == GetHold() )
+		//}} kimhc // 2010.7.12 // ¿©·¯¸íÀÇ À¯Àú¸¦ HOLD ÇÒ ¼ö ÀÖµµ·Ï ÇÔ
+
+#ifdef TEST_GROUP_GRAP
+		if ( false == GetGrap() )
+#endif TEST_GROUP_GRAP
+
+		{
+#ifdef RIDING_SYSTEM
+			/// Å»°Í¿¡ Å¾½ÂÁßÀÌ¶ó¸é, Å¾½Â¹°ÀÇ ½ºÅ×ÀÌÆ®·Î º¯°æÇÑ´Ù.
+			if ( true == GetRidingOn() )
+				StateChange( USI_RIDING_DAMAGE_FRONT );
+			else
+#endif // RIDING_SYSTEM
+				StateChange( USI_DAMAGE_DOWN_FRONT );
+		}
+	}
+	else if( m_InputData.oneUp == true && GetNowMp() > 149.f && m_FlyCount >= 3 && m_pXSkinAnimFuture->GetNowAnimationTime() > 0.15f )
+	{
+		float fMPConsume = 150.f;
+		UpNowMp( -fMPConsume );
+		StateChange( USI_JUMP_UP_RECOVERY );
+	}	
+	CommonEventProcess();
 }
 
 ////LESI_DAMAGE_GROGGY
@@ -8876,7 +9179,7 @@ void CX2GULire_ElvenRanger::ComboZ1FrameMove()
 
 void CX2GULire_ElvenRanger::ComboZ1EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
@@ -8893,7 +9196,7 @@ void CX2GULire_ElvenRanger::ComboZ1EventProcess()
 	}
 	else if ( true == m_pXSkinAnimFuture->IsAnimationEnd() )
 	{
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 		StateChange( USI_WAIT );
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 1, 1, GetUnitClass() == CX2Unit::UC_LIRE_NIGHT_WATCHER && m_InputData.oneX == true, LESI_COMBO_RNW_ZZX )
@@ -8941,7 +9244,7 @@ void CX2GULire_ElvenRanger::ComboZ1EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > fSkipTime )
 		{
-			m_fCanNotAttackTime = 0.15f;
+			//m_fCanNotAttackTime = 0.15f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -8949,7 +9252,7 @@ void CX2GULire_ElvenRanger::ComboZ1EventProcess()
 
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 		StateChange( USI_WAIT );
 	}
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
@@ -8990,7 +9293,7 @@ void CX2GULire_ElvenRanger::ComboZ2FrameMove()
 
 void CX2GULire_ElvenRanger::ComboZ2EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 3 );
 
 	if ( false == IsOnSomethingFuture() )
@@ -9000,7 +9303,7 @@ void CX2GULire_ElvenRanger::ComboZ2EventProcess()
 	}
 	else if ( true == m_pXSkinAnimFuture->IsAnimationEnd() )
 	{
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 0, 0, GetUnitClass() == CX2Unit::UC_LIRE_WIND_SNEAKER && m_InputData.oneZ == true && 
@@ -9030,7 +9333,7 @@ void CX2GULire_ElvenRanger::ComboZ2EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 #ifdef RENA_SECOND_CLASS_CHANGE
@@ -9054,7 +9357,7 @@ void CX2GULire_ElvenRanger::ComboZ2EventProcess()
 #endif //BALANCE_GRAND_ARCHER_20121213
 	ELSE_IF_ARROW_ASDC_PRESSED_AFTER( fSkipTime )
 	{
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 #endif //ADD_RENA_SYSTEM
@@ -9091,7 +9394,7 @@ void CX2GULire_ElvenRanger::ComboZ3FrameMove()
 
 void CX2GULire_ElvenRanger::ComboZ3EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 4 )
 
 	if ( false == IsOnSomethingFuture() )
@@ -9113,7 +9416,7 @@ void CX2GULire_ElvenRanger::ComboZ3EventProcess()
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 #else //ADD_RENA_SYSTEM
 	m_bReAttackZ1Right = m_FrameDataFuture.syncData.bIsRight;
-	m_fReAttackZ1Time = 0.4f;
+	//m_fReAttackZ1Time = 0.4f;
 
 	float fSkipTime;
 	float fChangeTime;
@@ -9133,7 +9436,7 @@ void CX2GULire_ElvenRanger::ComboZ3EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 		StateChange( USI_WAIT );
 	}
 	else if( SpecialAttackEventProcess() == true )
@@ -9141,7 +9444,7 @@ void CX2GULire_ElvenRanger::ComboZ3EventProcess()
 	}
 	else if( m_FrameDataFuture.stateParam.bEventFlagList[2] == true && m_pXSkinAnimFuture->GetNowAnimationTime() > fChangeTime )
 	{
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( LESI_COMBO_Z4UP );
 		m_FrameDataFuture.stateParam.bEventFlagList[2] = false;
 	}
@@ -9167,7 +9470,7 @@ void CX2GULire_ElvenRanger::ComboZ3EventProcess()
 		StateChange( USI_WAIT );
 	}
 #ifdef BALANCE_CODE_NEMESIS_20121213
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.01f )
 		BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 		WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 		DASH_CANCEL_AFTER( m_fDashCancelAfter )
@@ -9209,7 +9512,7 @@ void CX2GULire_ElvenRanger::ComboZ4FrameMove()
 
 void CX2GULire_ElvenRanger::ComboZ4EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		if( false == IsOnSomethingFuture() )
@@ -9250,7 +9553,7 @@ void CX2GULire_ElvenRanger::ComboZ4EventProcess()
 		}
 	}
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.7f )
 	CommonEventProcess();
 }
 
@@ -9336,7 +9639,7 @@ void CX2GULire_ElvenRanger::ComboZ4aFrameMove()
 
 void CX2GULire_ElvenRanger::ComboZ4aEventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if ( false == IsOnSomethingFuture() )
 	{
 		StateChange( USI_JUMP_DOWN );
@@ -9374,7 +9677,7 @@ void CX2GULire_ElvenRanger::ComboZ4aEventProcess()
 		StateChange( USI_WAIT );
 	}
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.66f )
 	CommonEventProcess();
 }
 
@@ -9409,7 +9712,7 @@ void CX2GULire_ElvenRanger::ComboZ4UpFrameMove()
 
 void CX2GULire_ElvenRanger::ComboZ4UpEventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if ( false == IsOnSomethingFuture() )
 	{
 		StateChange( USI_JUMP_DOWN );
@@ -9423,6 +9726,7 @@ void CX2GULire_ElvenRanger::ComboZ4UpEventProcess()
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	JUMP_CANCEL
 #else //ADD_RENA_SYSTEM
 	float fSkipTime;
 	float fChangeTime;
@@ -9448,7 +9752,7 @@ void CX2GULire_ElvenRanger::ComboZ4UpEventProcess()
 	}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.55f )
 	CommonEventProcess();
 }
 
@@ -9502,7 +9806,7 @@ void CX2GULire_ElvenRanger::ComboX1FrameMove()
 
 void CX2GULire_ElvenRanger::ComboX1EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
@@ -9557,10 +9861,7 @@ void CX2GULire_ElvenRanger::ComboX1EventProcess()
 	{
 		StateChange( USI_JUMP_DOWN );
 		m_FrameDataFuture.syncData.position.y -= LINE_RADIUS * 1.5f;
-	}
-	else if( SpecialAttackEventProcess() == true )
-	{
-	}
+	}	
 	else if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true && m_pXSkinAnimFuture->GetNowAnimationTime() >= fChangeTime )
 	{
 		StateChange( LESI_COMBO_X2 );
@@ -9582,7 +9883,7 @@ void CX2GULire_ElvenRanger::ComboX1EventProcess()
 	}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.01f )
 	CommonEventProcess();
 }
 
@@ -9634,7 +9935,7 @@ void CX2GULire_ElvenRanger::ComboX2FrameMove()
 
 void CX2GULire_ElvenRanger::ComboX2EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
@@ -9700,7 +10001,7 @@ void CX2GULire_ElvenRanger::ComboX2EventProcess()
 	}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.01f )
 	CommonEventProcess();
 }
 
@@ -9874,7 +10175,7 @@ void CX2GULire_ElvenRanger::ComboX3FrameMove()
 
 void CX2GULire_ElvenRanger::ComboX3EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false; //X4
@@ -9983,10 +10284,9 @@ void CX2GULire_ElvenRanger::ComboX3EventProcess()
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		StateChange( USI_WAIT );
-	}
-
+	}	
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.01f )
 	CommonEventProcess();
 }
 
@@ -10051,7 +10351,7 @@ void CX2GULire_ElvenRanger::ComboX4FrameMove()
 
 void CX2GULire_ElvenRanger::ComboX4EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if ( false == IsOnSomethingFuture() )
 	{
 		StateChange( USI_JUMP_DOWN );
@@ -10082,7 +10382,7 @@ void CX2GULire_ElvenRanger::ComboX4EventProcess()
 		StateChange( USI_WAIT );
 	}
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.33f )
 	CommonEventProcess();
 }
 
@@ -10180,7 +10480,7 @@ void CX2GULire_ElvenRanger::ComboX4UpFrameMove()
 
 void CX2GULire_ElvenRanger::ComboX4UpEventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if ( false == IsOnSomethingFuture() )
 	{
 		StateChange( USI_JUMP_DOWN );
@@ -10211,7 +10511,7 @@ void CX2GULire_ElvenRanger::ComboX4UpEventProcess()
 		StateChange( USI_WAIT );
 	}
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.3f )
 	CommonEventProcess();
 }
 
@@ -10313,7 +10613,7 @@ void CX2GULire_ElvenRanger::ComboX4DownFrameMove()
 
 void CX2GULire_ElvenRanger::ComboX4DownEventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if ( false == IsOnSomethingFuture() )
 	{
 		StateChange( USI_JUMP_DOWN );
@@ -10345,7 +10645,7 @@ void CX2GULire_ElvenRanger::ComboX4DownEventProcess()
 	}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.3f )
 	CommonEventProcess();
 }
 
@@ -10367,7 +10667,7 @@ void CX2GULire_ElvenRanger::DashComboZ1FrameMove()
 
 void CX2GULire_ElvenRanger::DashComboZ1EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 2 );
 
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
@@ -10380,7 +10680,7 @@ void CX2GULire_ElvenRanger::DashComboZ1EventProcess()
 		else
 		{
 			StateChange( USI_WAIT );
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 		}
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 1, 1, ( GetUnitClass() == CX2Unit::UC_LIRE_NIGHT_WATCHER || GetUnitClass() == CX2Unit::UC_LIRE_TRAPPING_RANGER ) 
@@ -10409,7 +10709,7 @@ void CX2GULire_ElvenRanger::DashComboZ1EventProcess()
 		else
 		{
 			StateChange( USI_WAIT );
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 		}
 	}
 	ELSE_IF_STATE_CHANGE_ON_( 0, fChangeTime, fChangeTime, m_InputData.oneZ == true, LESI_DASH_COMBO_Z2 )
@@ -10436,14 +10736,14 @@ void CX2GULire_ElvenRanger::DashComboZ1EventProcess()
 			}
 			else
 			{
-				m_fCanNotAttackTime = 0.2f;
+				//m_fCanNotAttackTime = 0.2f;
 				StateChange( USI_WAIT );
 			}
 		}
 	}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.6f )
 	CommonEventProcess();
 }
 
@@ -10461,7 +10761,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z1_StartFuture()
 
 void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z1_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
@@ -10481,7 +10781,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z1_EventProcess()
 		else
 		{
 			StateChange( USI_WAIT );
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 		}
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 0, 0, m_InputData.oneZ == true, LESI_COMBAT_RANGER_DASH_COMBO_Z2 )
@@ -10524,7 +10824,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z1_EventProcess()
 			}
 			else
 			{
-				m_fCanNotAttackTime = 0.2f;
+				//m_fCanNotAttackTime = 0.2f;
 				StateChange( USI_WAIT );
 			}
 		}
@@ -10539,11 +10839,11 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z1_EventProcess()
 		else
 		{
 			StateChange( USI_WAIT );
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 		}
 	}
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.5f )
 	CommonEventProcess();
 }
 
@@ -10561,7 +10861,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z2_StartFuture()
 
 void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z2_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
@@ -10581,7 +10881,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z2_EventProcess()
 		else
 		{
 			StateChange( USI_WAIT );
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 		}
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 0, 0, m_InputData.oneZ == true, LESI_DASH_COMBO_Z2 )
@@ -10624,7 +10924,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z2_EventProcess()
 			}
 			else
 			{
-				m_fCanNotAttackTime = 0.2f;
+				//m_fCanNotAttackTime = 0.2f;
 				StateChange( USI_WAIT );
 			}
 		}
@@ -10639,12 +10939,12 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_COMBO_Z2_EventProcess()
 		else
 		{
 			StateChange( USI_WAIT );
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 		}
 	}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.5f )
 	CommonEventProcess();
 }
 
@@ -10662,7 +10962,7 @@ void CX2GULire_ElvenRanger::DashComboZ2FrameMove()
 
 void CX2GULire_ElvenRanger::DashComboZ2EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		if( false == IsOnSomethingFuture() )
@@ -10677,6 +10977,7 @@ void CX2GULire_ElvenRanger::DashComboZ2EventProcess()
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	JUMP_CANCEL
 #else //ADD_RENA_SYSTEM
 	float fSkipTime;
 	float fChangeTime;
@@ -10703,7 +11004,7 @@ void CX2GULire_ElvenRanger::DashComboZ2EventProcess()
 	}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.61f )
 	CommonEventProcess();
 }
 
@@ -10802,7 +11103,7 @@ void CX2GULire_ElvenRanger::DashAttackXEventProcess()
 			StateChange( USI_WAIT );
 	}
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.01f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
@@ -10869,7 +11170,7 @@ void CX2GULire_ElvenRanger::LESI_SNIPING_RANGER_DASH_COMBO_X1_FrameMove()
 
 void CX2GULire_ElvenRanger::LESI_SNIPING_RANGER_DASH_COMBO_X1_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 2 );
 
 	if ( false == IsOnSomethingFuture() )
@@ -10915,7 +11216,7 @@ void CX2GULire_ElvenRanger::LESI_SNIPING_RANGER_DASH_COMBO_X1_EventProcess()
 #endif RENA_SECOND_CLASS_CHANGE
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.01f )
 	CommonEventProcess();
 
 }
@@ -10984,7 +11285,7 @@ void CX2GULire_ElvenRanger::LESI_SNIPING_RANGER_DASH_COMBO_X2_EventProcess()
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.3f )
 #endif //ADD_RENA_SYSTEM
 	ELSE_IF_ZX_PRESSED_AFTER( m_fAttackCancelAfter )
 	{
@@ -11387,7 +11688,7 @@ void CX2GULire_ElvenRanger::JumpAttackZEventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_DOWN );
 	}
@@ -11395,7 +11696,7 @@ void CX2GULire_ElvenRanger::JumpAttackZEventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -11451,7 +11752,7 @@ void CX2GULire_ElvenRanger::JumpAttackXFrameMove()
 			D3DXVECTOR3 posR = m_pXSkinAnim->GetCloneFramePosition( L"Dummy1_Rhand" );
 			CX2DamageEffect::CEffect* pDE = NULL;
 
-			pDE = g_pX2Game->GetDamageEffect()->CreateInstance( this, L"ARROW", GetPowerRate() * m_fAttackPowerRateArrow, posR, GetRotateDegree(), GetRotateDegree(), m_FrameDataNow.unitCondition.landPosition.y, false, -1.f, m_SkillRelatedData.GetForceDownValueRateOfRenaArrowAttack(), m_fArrowRangeRate, m_iAddHitCountArrow, m_fHitGapArrow, m_iArrowMeshPlayerIndex, m_fHitAddMp );
+			pDE = g_pX2Game->GetDamageEffect()->CreateInstance( this, L"ARROW_DOWN", GetPowerRate() * m_fAttackPowerRateArrow, posR, GetRotateDegree(), GetRotateDegree(), m_FrameDataNow.unitCondition.landPosition.y, false, -1.f, m_SkillRelatedData.GetForceDownValueRateOfRenaArrowAttack(), m_fArrowRangeRate, m_iAddHitCountArrow, m_fHitGapArrow, m_iArrowMeshPlayerIndex, m_fHitAddMp );
 			if( NULL != pDE )
 			{
 				pDE->GetDamageData().backSpeed.x += m_ArrowData.m_fAddBackSpeedX;
@@ -11517,7 +11818,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_JUMP_COMBO_Z1_EventProcess()
 	{
 		StateChange( LESI_DASH_JUMP_ATTACK_Z_LANDING );
 	}
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 0, 0, m_InputData.oneZ == true, LESI_COMBAT_RANGER_DASH_JUMP_COMBO_Z2 )
 #else //ADD_RENA_SYSTEM
 	ELSE_IF_STATE_CHANGE_ON_( 0, 100.f, 0.25f, m_InputData.oneZ == true, LESI_COMBAT_RANGER_DASH_JUMP_COMBO_Z2 )
@@ -11529,7 +11830,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_JUMP_COMBO_Z1_EventProcess()
 //LESI_COMBAT_RANGER_DASH_JUMP_COMBO_Z2
 void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_JUMP_COMBO_Z2_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( true == IsOnSomethingFuture() )
 	{
 		StateChange( LESI_DASH_JUMP_ATTACK_Z_LANDING );
@@ -11563,7 +11864,7 @@ void CX2GULire_ElvenRanger::LESI_COMBAT_RANGER_DASH_JUMP_COMBO_Z3_EventProcess()
 	{
 		StateChange( LESI_DASH_JUMP_ATTACK_Z_LANDING );
 	}
-
+	SKILL_CANCEL_AFTER( 0.11f )
 	CommonEventProcess();
 }
 
@@ -11737,7 +12038,7 @@ void CX2GULire_ElvenRanger::DashJumpComboX1FrameMove()
 
 void CX2GULire_ElvenRanger::DashJumpComboX1EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( true == IsOnSomethingFuture() )
 	{
 		StateChange( USI_DASH_JUMP_LANDING );
@@ -11824,7 +12125,7 @@ void CX2GULire_ElvenRanger::DashJumpComboX2FrameMove()
 
 void CX2GULire_ElvenRanger::DashJumpComboX2EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( true == IsOnSomethingFuture() )
 	{
 		StateChange( USI_DASH_JUMP_LANDING );
@@ -12005,7 +12306,7 @@ void CX2GULire_ElvenRanger::DashJumpComboX3EventProcess()
 	{
 		StateChange( USI_DASH_JUMP_LANDING );
 	}
-
+	SKILL_CANCEL_AFTER( 0.21f )
 
 	CommonEventProcess();
 }
@@ -12069,7 +12370,7 @@ void CX2GULire_ElvenRanger::LESI_SNIPING_RANGER_DASH_JUMP_COMBO_X2_FrameMove()
 
 void CX2GULire_ElvenRanger::LESI_SNIPING_RANGER_DASH_JUMP_COMBO_X2_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( true == IsOnSomethingFuture() )
 	{
 		StateChange( USI_DASH_JUMP_LANDING );
@@ -12190,7 +12491,7 @@ void CX2GULire_ElvenRanger::LESI_SNIPING_RANGER_DASH_JUMP_COMBO_X3_EventProcess(
 	{
 		StateChange( USI_DASH_JUMP_LANDING );
 	}
-
+	SKILL_CANCEL_AFTER( 0.2f )
 
 	CommonEventProcess();
 }
@@ -12238,7 +12539,7 @@ void CX2GULire_ElvenRanger::LESI_SI_LE_POWER_ATTACK_EventProcess()
 			StateChange( USI_WAIT );
 	}
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.3f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
@@ -12283,7 +12584,7 @@ void CX2GULire_ElvenRanger::LESI_SI_LE_POWER_ATTACK_HYPER_EventProcess()
 			StateChange( USI_WAIT );
 	}
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.3f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
@@ -13006,14 +13307,14 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RNW_ZZX_EventProcess()
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange, m_InputData.oneX == true, LESI_COMBO_RNW_ZZXX )
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
-	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	DASH_CANCEL_AFTER( 0.01f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.3f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -13060,11 +13361,11 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RNW_ZZXX_EventProcess()
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange, m_InputData.oneX == true, LESI_COMBO_RNW_ZZXXX )
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
-	BWALK_CANCEL_AFTER( m_fWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.2f )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
@@ -13126,14 +13427,14 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RNW_ZZXXX_EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
-	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	BWALK_CANCEL_AFTER( 0.2f )
+	DASH_CANCEL_AFTER( 0.4f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -13410,7 +13711,7 @@ void CX2GULire_ElvenRanger::LESI_RNW_ACCEL_DASH_JUMP_ATTACK_Z_EventProcess()
 	{
 		StateChange( LESI_RNW_ACCEL_DASH_JUMP_LANDING );
 	}
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 0, 0, m_InputData.oneZ == true, LESI_RNW_ACCEL_DASH_JUMP_ZZ )
 #else //ADD_RENA_SYSTEM
 	ELSE_IF_STATE_CHANGE_ON_( 0, 100.f, 0.25f, m_InputData.oneZ == true, LESI_RNW_ACCEL_DASH_JUMP_ZZ )
@@ -13451,7 +13752,7 @@ void CX2GULire_ElvenRanger::LESI_RNW_ACCEL_DASH_JUMP_ATTACK_ZZ_EventProcess()
 	{
 		StateChange( LESI_RNW_ACCEL_DASH_JUMP_LANDING );
 	}
-
+	SKILL_CANCEL_AFTER( 0.2f )
 	CommonEventProcess();
 }
 void CX2GULire_ElvenRanger::LESI_RNW_ACCEL_DASH_JUMP_ATTACK_ZZ_StateEndFuture()
@@ -15230,7 +15531,7 @@ void CX2GULire_ElvenRanger::LESI_SI3_LSR_CRAZY_SHOT_HYPER_EventProcess()
 */
 /*virtual*/ void CX2GULire_ElvenRanger::COMMON_BUFF_FrameMove()
 {
-#ifndef UPGRADE_SKILL_SYSTEM_2013 // °øÅë ½ºÅ³ °³Æí, ±èÁ¾ÈÆ
+#ifdef UPGRADE_SKILL_SYSTEM_2013 // °øÅë ½ºÅ³ °³Æí, ±èÁ¾ÈÆ
 	// °¢¼º ÀÎÁö ¾Æ´ÑÁö¿¡ µû¶ó World»ö º¯°æ
 	ChangeWorldColorByHyperMode();
 	ShowActiveSkillCutInAndLight( L"Dummy1_Rhand", 0.04f, 0 );
@@ -15557,10 +15858,10 @@ void CX2GULire_ElvenRanger::LESI_SI_A_LE_REFLEX_MAGIC_EventProcess()
 		}
 	}
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.1f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
-	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	BWALK_CANCEL_AFTER( 0.1f )
+	DASH_CANCEL_AFTER( 0.2f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -16484,7 +16785,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZ_FrameMoveFuture()
 
 void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZ_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 1 );
 
 	if( false == IsOnSomethingFuture() )
@@ -16523,7 +16824,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZ_EventProcess()
 	//}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.3f )
 	CommonEventProcess();
 }
 
@@ -16547,7 +16848,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZ_FrameMoveFuture()
 
 void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZ_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( false == IsOnSomethingFuture() )
 	{
 		StateChange( USI_JUMP_DOWN );
@@ -16562,6 +16863,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZ_EventProcess()
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	JUMP_CANCEL
 #else //ADD_RENA_SYSTEM
 	//CANCEL_COMBO_ON_DIRECTION_CHANGE( 1 );
 
@@ -16573,9 +16875,9 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZ_EventProcess()
 	{	
 		StateChange( USI_WAIT );
 	}
-	else if( SpecialAttackEventProcess() == true )
+	/**else if( SpecialAttackEventProcess() == true )
 	{
-	}
+	}**/
 	//else if( m_pXSkinAnimFuture->GetNowAnimationTime() >= 0.67f && (m_InputData.pureDoubleRight == true || m_InputData.pureDoubleLeft == true) ) { StateChangeDashIfPossible(); }
 	//ELSE_IF_STATE_CHANGE_ON_( 0, 0.53f, 0.53f, m_InputData.oneZ == true, LESI_LWS_ZZfrontZZZ )
 	//ELSE_IF_ARROW_ASDC_PRESSED_AFTER( 0.67f )
@@ -16585,7 +16887,8 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZ_EventProcess()
 	{
 		StateChange( USI_WAIT );
 	}
-
+	SKILL_CANCEL_AFTER( 0.01f )	
+	BWALK_CANCEL_AFTER( 0.53f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -16618,7 +16921,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZZ_EventProcess()
 	{
 		StateChange( LESI_LWS_ZZfrontZZZ_Landing );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -16639,9 +16942,9 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZZ_Landing_EventProcess()
 		StateChange( USI_WAIT );
 	}
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.01f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.1f )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 #endif //ADD_RENA_SYSTEM
 
@@ -16657,7 +16960,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_ZZfrontZZZ_Landing_EventProcess()
 
 void CX2GULire_ElvenRanger::LESI_LWS_DASH_X_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 2 );
 
 	if( false == IsOnSomethingFuture() )
@@ -16691,13 +16994,13 @@ void CX2GULire_ElvenRanger::LESI_LWS_DASH_X_EventProcess()
 	{	
 		StateChange( USI_WAIT );
 	}
-	else if( SpecialAttackEventProcess() == true )
+	/**else if( SpecialAttackEventProcess() == true )
 	{
-	}
+	}**/
 	ELSE_IF_STATE_CHANGE_ON_( 1, fChangeTime, fChangeTime, m_InputData.oneZ == true, LESI_LWS_DASH_XZ )
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.01f )
 	CommonEventProcess();
 
 }
@@ -16717,7 +17020,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_DASH_XZ_EventProcess()
 {
 	//CANCEL_COMBO_ON_DIRECTION_CHANGE( 1 );
 
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( true == m_pXSkinAnimFuture->IsAnimationEnd() &&
 		true == IsOnSomethingFuture() )
 	{
@@ -16750,7 +17053,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_DASH_XZ_EventProcess()
 	//}
 
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.4f )
 	CommonEventProcess();
 }
 
@@ -16771,7 +17074,7 @@ void CX2GULire_ElvenRanger::LESI_LWS_DASH_XZZ_EventProcess()
 		}
 	}
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.3f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
@@ -16808,7 +17111,7 @@ void CX2GULire_ElvenRanger::LESI_LGA_ZZX_FrameMove()
 }
 void CX2GULire_ElvenRanger::LESI_LGA_ZZX_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	CANCEL_COMBO_ON_DIRECTION_CHANGE( 1 );
 
 	if( false == IsOnSomethingFuture() )
@@ -16948,9 +17251,9 @@ void CX2GULire_ElvenRanger::LESI_LGA_ZZXX_EventProcess()
 		StateChange( USI_JUMP_LANDING );
 	}
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.5f )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.3f )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 #endif //ADD_RENA_SYSTEM
 
@@ -17194,7 +17497,7 @@ void CX2GULire_ElvenRanger::LESI_LGA_DASH_JUMP_ZX_EventProcess()
 	{
 		StateChange( USI_JUMP_LANDING );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -17863,7 +18166,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZ_EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	//ELSE_IF_STATE_CHANGE_ON_( 0, fChangeTime, fChangeTime, m_InputData.oneZ == true && m_InputData.pureDown == true, LESI_COMBO_RTR_ZZZ_DZ )
@@ -17874,7 +18177,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZ_EventProcess()
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.2f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -17901,7 +18204,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZ_DZ_FrameMove()
 
 void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZ_DZ_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( false == IsOnSomethingFuture() )
 	{
 		StateChange( USI_JUMP_DOWN );
@@ -17909,7 +18212,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZ_DZ_EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
@@ -17929,7 +18232,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZ_DZ_EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	ELSE_IF_ARROW_ASDC_PRESSED_AFTER( fSkipTime )
@@ -17937,7 +18240,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZ_DZ_EventProcess()
 		StateChange( USI_WAIT );
 	}
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.3f )
 	CommonEventProcess();
 }
 
@@ -17984,7 +18287,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZZ_EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	ELSE_IF_STATE_CHANGE_ON_EX_( 0, m_fEventTime[0].keyInputStart, m_fEventTime[0].keyInputEnd, m_fEventTime[0].stateChange, m_InputData.oneZ == true, LESI_COMBO_RTR_ZZZZZ )
@@ -17992,7 +18295,7 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZZ_EventProcess()
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.2f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -18096,14 +18399,14 @@ void CX2GULire_ElvenRanger::LESI_COMBO_RTR_ZZZZZ_EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
-	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	BWALK_CANCEL_AFTER( 0.3f )
+	DASH_CANCEL_AFTER( 0.2f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -18169,7 +18472,7 @@ void CX2GULire_ElvenRanger::LESI_JUMP_ATTACK_RTR_Z_EventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_DOWN );
 	}
@@ -18177,7 +18480,7 @@ void CX2GULire_ElvenRanger::LESI_JUMP_ATTACK_RTR_Z_EventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -18232,7 +18535,7 @@ void CX2GULire_ElvenRanger::LESI_DASH_COMBO_RTR_ZX_FrameMove()
 
 void CX2GULire_ElvenRanger::LESI_DASH_COMBO_RTR_ZX_EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		if( false == IsOnSomethingFuture() )
@@ -18272,7 +18575,7 @@ void CX2GULire_ElvenRanger::LESI_DASH_COMBO_RTR_ZX_EventProcess()
 		}
 	}
 #endif //ADD_RENA_SYSTEM
-
+	SKILL_CANCEL_AFTER( 0.3f )
 	CommonEventProcess();
 }
 
@@ -18322,7 +18625,7 @@ void CX2GULire_ElvenRanger::LESI_DASH_JUMP_ATTACK_RTR_Z_EventProcess()
 	{
 		StateChange( LESI_DASH_JUMP_ATTACK_Z_LANDING );
 	}
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	ELSE_IF_STATE_CHANGE_ON_EX_STRUCT( 0, 0, m_InputData.oneZ == true, LESI_DASH_JUMP_ATTACK_RTR_ZZ )
 #else //ADD_RENA_SYSTEM
 	ELSE_IF_STATE_CHANGE_ON_( 0, 100.f, 0.25f, m_InputData.oneZ == true, LESI_DASH_JUMP_ATTACK_RTR_ZZ )
@@ -18369,7 +18672,7 @@ void CX2GULire_ElvenRanger::LESI_DASH_JUMP_ATTACK_RTR_ZZ_EventProcess()
 	{
 		StateChange( LESI_DASH_JUMP_ATTACK_Z_LANDING );
 	}
-
+	SKILL_CANCEL_AFTER( 0.14f )
 	CommonEventProcess();
 }
 
@@ -20224,7 +20527,7 @@ void CX2GULire_ElvenRanger::SnipingRangerComboX2FrameMove()
 
 void CX2GULire_ElvenRanger::SnipingRangerComboX2EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
@@ -20277,6 +20580,7 @@ void CX2GULire_ElvenRanger::SnipingRangerComboX2EventProcess()
 	}
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	BWALK_CANCEL_AFTER( 0.9f )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 #endif //ADD_RENA_SYSTEM
 
@@ -20372,7 +20676,7 @@ void CX2GULire_ElvenRanger::SnipingRangerComboX3FrameMove()
 }
 void CX2GULire_ElvenRanger::SnipingRangerComboX3EventProcess()
 {
-#ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
+#ifndef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false; //X4
@@ -20466,7 +20770,9 @@ void CX2GULire_ElvenRanger::SnipingRangerComboX3EventProcess()
 	}
 	
 #endif //ADD_RENA_SYSTEM
-
+	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
+	DASH_CANCEL_AFTER( m_fDashCancelAfter )
+	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 	CommonEventProcess();
 }
 
@@ -20529,7 +20835,7 @@ void CX2GULire_ElvenRanger::SnipingRangerComboX4EventProcess()
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
+	BWALK_CANCEL_AFTER( 0.9f )
 #endif //ADD_RENA_SYSTEM
 #ifdef BALANCE_GRAND_ARCHER_20121213
 	ELSE_IF_ZX_PRESSED_AFTER( m_fAttackCancelAfter )
@@ -23144,10 +23450,10 @@ void CX2GULire_ElvenRanger::LESI_HA_LWS_SPIRAL_STIKE_FLYING_ATTACK_EventProcess(
 
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )	
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 1.17f )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
-	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
-	ZX_CANCEL_AFTER_EX( m_fAttackCancelAfterEx )
+	BWALK_CANCEL_AFTER( 0.9f )
+	ZX_CANCEL_AFTER_EX( 1.3f )
 #endif //ADD_RENA_SYSTEM
 
 	CommonEventProcess();
@@ -23286,7 +23592,7 @@ void CX2GULire_ElvenRanger:: LESI_HA_LGA_CRYOTRON_BOLT_DOWNLANDING_EventProcess(
 
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )	
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 1.8f )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	ZX_CANCEL_AFTER_EX( m_fAttackCancelAfterEx )
@@ -23431,7 +23737,7 @@ void CX2GULire_ElvenRanger::LESI_HA_LNW_INNOCENT_END_EventProcess()
 
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )	
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.8f )
 #ifdef ADD_RENA_SYSTEM //±èÃ¢ÇÑ
 	BWALK_CANCEL_AFTER( m_fBWalkCancelAfter )
 	ZX_CANCEL_AFTER_EX( m_fAttackCancelAfterEx )
@@ -23797,7 +24103,7 @@ const bool CX2GULire_ElvenRanger::GetNaturalForceBuff()
 	@brief 		: DamageReact¸¦ ½ÇÇàÇÏ±â Àü¿¡ ÇØ´ç DamageData¸¦ ¼öÁ¤ÇÒ ¼ö ÀÖ´Â ÇÔ¼ö
 */
 /*virtual*/ void CX2GULire_ElvenRanger::AdjustDamageDataBeforeDamageReact( CX2DamageManager::DamageData* pDamageData )
-{
+{	
 	//RT_DOWNµîÀ¸·Î ¾²·¯ÁöÁö ¾Êµµ·Ï BIG_DAMAGE·Î REACT¸¦ ¹Ù²ãÁØ´Ù.
 	if( pDamageData->m_NaturalForceType == CX2DamageManager::NFT_COMBO_BOMB && IsEmptyNaturalForce() == false )
 	{

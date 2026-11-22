@@ -3317,7 +3317,7 @@ static const int MAGIC_HERO_MATCH_GAME_KILL_COUNT = 8;
 #include "AntiHackingString.h"
 
 #ifdef NDEBUG
-#define CHECK_KOM_FILE_ON_LOAD						// kimhc // 2011-06-22 // 로드할 때 KOM 파일 검사
+//#define CHECK_KOM_FILE_ON_LOAD						// kimhc // 2011-06-22 // 로드할 때 KOM 파일 검사
 #endif NDEBUG
 
 //{{ 장훈 : conversion Visual Studios
@@ -3468,6 +3468,15 @@ static const int MAGIC_HERO_MATCH_GAME_KILL_COUNT = 8;
 #define SERV_IRUHADEV_QUICK_SLOT_FULL_FREE
 //////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////
+// Author: <you>
+// Date: <date>
+// Description: Offline mode: the account auth level the login hands the
+//              client comes from the save, settings.auth_level in els_db.sql
+//              (0 normal, 1 special, 2 operator, 3 dev, 10 light operator).
+#define SERV_IRUHADEV_OFFLINE_AUTH_LEVEL
+
+//////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 // Author: Iruha
 // Date: 2026-08-31
@@ -3654,6 +3663,42 @@ static const int MAGIC_HERO_MATCH_GAME_KILL_COUNT = 8;
 #ifdef SERV_IRUHADEV_OFFLINE
 #define SERV_IRUHADEV_OFFLINE_FETCH_AURA_ALWAYS
 #endif SERV_IRUHADEV_OFFLINE
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+// Author: Iruha
+// Date: 2026-10-12
+// Description: Offline resurrection stones. The count is a per-character counter in the
+//              save (unit.resurrection_stone, schema v15), not an inventory item: every
+//              character starts with DEFAULT_RESURRECTION_STONE (10) of them, the v15 migration
+//              gives every existing character the same, the login packets report the real
+//              count, and EGS_RESURRECT_TO_CONTINUE_DUNGEON_REQ consumes one and revives
+//              the unit (ACK + EGS_RESURRECT_TO_CONTINUE_DUNGEON_NOT) instead of refusing
+//              with ERR_RESURRECT_00. The shop claim / package / resurrection-cube acks
+//              carry the real total too, since the client treats that field as absolute.
+//              Files: X2Lib/Offline/X2OfflineDB.{h,cpp}, Handlers_Unit/Room/Shop/Social.cpp.
+#define SERV_IRUHADEV_OFFLINE_RES_STONE
+#if defined(SERV_IRUHADEV_OFFLINE_RES_STONE) && !defined(SERV_IRUHADEV_OFFLINE)
+#error SERV_IRUHADEV_OFFLINE_RES_STONE needs SERV_IRUHADEV_OFFLINE
+#endif
+
+//////////////////////////////////////////////////////////////////////////
+// Author: Iruha
+// Date: 2026-10-19
+// Description: Offline emulator - a solo dungeon death ends the run the way March's room did. The die REQ reserves the end
+//              ( KRoomUser::ReserveEndPlay, 15 s, RoomUser.cpp:1371 ); X ( EGS_SKIP_CONTINUE_DUNGEON_NOT, was UNHANDLED ) ends it at
+//              once ( DungeonRoom.cpp:8943 ); otherwise the play-status beat ends it when the timer runs out ( Tick :250 ), the cash
+//              revive pause gives 11 s ( :1398 ), a revive cancels it ( :8939 ). The end is EGS_END_GAME_NOT with TN_MONSTER through
+//              Handler_EGS_END_GAME_REQ's own body ( split after its ACK as EndDungeonGame ). Off = a dead solo run never ends.
+//              Log GAME continue. Revert: OFFLINE_DUNGEON_CONTINUE_END in MODS.md.
+#define SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+#ifndef SERV_IRUHADEV_OFFLINE
+#error SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END needs SERV_IRUHADEV_OFFLINE ( the emulator )
+#endif SERV_IRUHADEV_OFFLINE
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+
+
 //////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////

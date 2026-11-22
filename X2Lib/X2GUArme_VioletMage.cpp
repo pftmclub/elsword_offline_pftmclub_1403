@@ -356,6 +356,12 @@ void CX2GUArme_VioletMage::DamageReact( CX2DamageManager::DamageData* pDamageDat
 	CX2GUUser::DamageReact( pDamageData );
 	CX2GUUser::DamageReactStateChange( pDamageData );
 	
+	if( m_OrgInputData.pureX == true && DamageFlushMp_KeyX()== true )
+	{
+		DetonationStateChange( pDamageData );
+		
+		return;			
+	}
 #ifdef BALANCE_ELEMENTAL_MASTER_20130117	/// 피격시 메디테이션 동작중인데 메모가 없으면, 메디테이션 버프 해제
 
 	if( true == m_bInMeditation && false == GetEqippedSkillMemo( CX2SkillTree::SMI_AISHA_MEMO11 ) )
@@ -1696,6 +1702,14 @@ void CX2GUArme_VioletMage::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
+	stateData.stateID			= USI_JUMP_UP_RECOVERY;
+	m_LuaManager.MakeTableReference( "AVSI_JUMP_UP_RECOVERY", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, JumpFrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUArme_VioletMage, JumpUpEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
 	stateData.stateID			= USI_JUMP_DOWN;
 	m_LuaManager.MakeTableReference( "AVSI_JUMP_DOWN", stateData.stateID );
 	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
@@ -1918,9 +1932,21 @@ void CX2GUArme_VioletMage::InitStateCommon()
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageRevengeEventProcess );
 	m_StateList[stateData.stateID] = stateData;
 
+	stateData.Init();
+	stateData.stateID			= USI_DAMAGE_RAGE;
+	m_LuaManager.MakeTableReference( "AVSI_MANA_BREAK", stateData.stateID );
+	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeStart );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeFramemove );	
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEventProcess );
+	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEnd );
+	m_StateList[stateData.stateID] = stateData;
 
-
-
+	stateData.Init();
+	stateData.stateID			= USI_CANCEL_MODE;
+	m_LuaManager.MakeTableReference( "AVSI_COMBO_CANCEL", stateData.stateID );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUArme_VioletMage, COMMON_BUFF_FrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, COMMON_BUFF_EventProcess );	
+	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
 #ifdef UPGRADE_SKILL_SYSTEM_2013 //JHKang
@@ -5820,7 +5846,11 @@ void CX2GUArme_VioletMage::JumpReadyEventProcess()
 		m_PhysicParam.nowSpeed.y = GetJumpSpeed();
 		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
 	}
-
+	else if( m_InputData.oneDown == true )
+	{
+		m_fCanNotJumpTime = 0.2f;
+		StateChange( GetJumpDownCancelID() );		
+	}
 	CommonEventProcess();
 }
 
@@ -6325,11 +6355,11 @@ void CX2GUArme_VioletMage::DashJumpFrameMoveFuture()
 {
 	if( m_InputData.pureRight == true && m_FrameDataNow.syncData.bIsRight	== true )
 	{
-		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.2f;
+		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.6f;
 	}
 	else if( m_InputData.pureLeft == true && m_FrameDataNow.syncData.bIsRight	== false )
 	{
-		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.2f;
+		m_PhysicParam.nowSpeed.x			= GetDashSpeed() * 1.6f;
 	}
 
 	if( m_bDownForce == true )
@@ -6352,7 +6382,7 @@ void CX2GUArme_VioletMage::DashJumpEventProcess()
 		}
 		else if( m_bDownForce == true )
 		{
-			StateChange( AVSI_DASH_JUMP_POWER_LANDING );
+			StateChange( USI_DASH );
 			m_bDownForce = false;
 		}
 		else
@@ -6416,7 +6446,7 @@ void CX2GUArme_VioletMage::DashJumpEventProcess()
 		StateChange( AVSI_WALL_LANDING );
 	}
 #endif WALL_JUMP_TEST
-	else if( m_InputData.oneUp == true )
+	else if( m_InputData.pureDoubleUp == true )
 	{
 		StateChange( AVSI_DASH_JUMP_LEVITATION );
 	}
@@ -8122,13 +8152,13 @@ void CX2GUArme_VioletMage::ComboZ1EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.5f )
 		{
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 			StateChange( USI_WAIT );
 		}
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 		StateChange( USI_WAIT );
 	}
 
@@ -8183,13 +8213,13 @@ void CX2GUArme_VioletMage::ComboZ2EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.6f )
 		{
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 			StateChange( USI_WAIT );
 		}
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 		StateChange( USI_WAIT );
 	}
 
@@ -8541,7 +8571,7 @@ void CX2GUArme_VioletMage::ComboX1EventProcess()
 			else
 			{
 #ifndef SKILL_BALANCE_20110728
-				m_fCanNotAttackTime = 0.3f;
+				//m_fCanNotAttackTime = 0.3f;
 #endif
 				StateChange( USI_WAIT );
 			}
@@ -8551,7 +8581,7 @@ void CX2GUArme_VioletMage::ComboX1EventProcess()
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{
 #ifndef SKILL_BALANCE_20110728
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 #endif
 		StateChange( USI_WAIT );
 	}
@@ -8686,7 +8716,7 @@ void CX2GUArme_VioletMage::ComboX2EventProcess()
 			else
 			{
 #ifndef SKILL_BALANCE_20110728
-					m_fCanNotAttackTime = 0.2f;
+					//m_fCanNotAttackTime = 0.2f;
 #endif
 				StateChange( USI_WAIT );
 			}
@@ -8696,7 +8726,7 @@ void CX2GUArme_VioletMage::ComboX2EventProcess()
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{
 #ifndef SKILL_BALANCE_20110728
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 #endif
 		StateChange( USI_WAIT );
 	}
@@ -9621,7 +9651,7 @@ void CX2GUArme_VioletMage::AVSI_HIGH_MAGICIAN_COMBO_X2_EventProcess()
 			else
 			{
 #ifndef SKILL_BALANCE_20110728
-				m_fCanNotAttackTime = 0.2f;
+				//m_fCanNotAttackTime = 0.2f;
 #endif
 				StateChange( USI_WAIT );
 			}
@@ -9630,7 +9660,7 @@ void CX2GUArme_VioletMage::AVSI_HIGH_MAGICIAN_COMBO_X2_EventProcess()
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{
 #ifndef SKILL_BALANCE_20110728
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 #endif
 		StateChange( USI_WAIT );
 	}
@@ -9808,7 +9838,7 @@ void CX2GUArme_VioletMage::AVSI_DARK_MAGICIAN_COMBO_X2_EventProcess()
 			else
 			{
 #ifndef SKILL_BALANCE_20110728
-				m_fCanNotAttackTime = 0.2f;
+				//m_fCanNotAttackTime = 0.2f;
 #endif
 				StateChange( USI_WAIT );
 			}
@@ -9817,7 +9847,7 @@ void CX2GUArme_VioletMage::AVSI_DARK_MAGICIAN_COMBO_X2_EventProcess()
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{
 #ifndef SKILL_BALANCE_20110728
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 #endif	SKILL_BALANCE_20110728
 		StateChange( USI_WAIT );
 	}
@@ -10694,7 +10724,7 @@ void CX2GUArme_VioletMage::JumpAttackZEventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -14480,7 +14510,7 @@ void CX2GUArme_VioletMage::SetSelfDestructSummonedNPC( CX2UnitManager::NPC_UNIT_
 */
 /*virtual*/ void CX2GUArme_VioletMage::COMMON_BUFF_FrameMove()
 {
-#ifndef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
+#ifdef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
 	ChangeWorldColorByHyperMode();
 	ShowActiveSkillCutInAndLight( L"Dummy1_Rhand", 0.047f, 0 );
 #endif // UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
@@ -18159,7 +18189,7 @@ void CX2GUArme_VioletMage::AVSI_SI_A_AV_CIRCLE_FLAME_EndFuture()
 #endif //SKILL_CANCEL_BY_HYPER_MODE
 		else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 		{	
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 
@@ -18187,7 +18217,7 @@ void CX2GUArme_VioletMage::AVSI_SI_A_AV_CIRCLE_FLAME_EndFuture()
 		}				
 		else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 		{	
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 
@@ -18230,7 +18260,7 @@ void CX2GUArme_VioletMage::AVSI_SI_A_AV_CIRCLE_FLAME_EndFuture()
 #endif //SKILL_CANCEL_BY_HYPER_MODE
 		else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 		{	
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 
@@ -20454,7 +20484,7 @@ void CX2GUArme_VioletMage::AVSI_SA_AEM_Chain_Lightning_EventProcess()
 		else
 #endif //ADD_MEMO_1ST_CLASS
 		StateChange( USI_WAIT );
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 	} // if
 
 #ifdef ADD_MEMO_1ST_CLASS //김창한

@@ -502,6 +502,13 @@ void CX2GUEve::DamageReact( CX2DamageManager::DamageData* pDamageData )
 	CX2GUUser::DamageReact( pDamageData );
 	CX2GUUser::DamageReactStateChange( pDamageData );
 
+	if( m_OrgInputData.pureX == true && DamageFlushMp_KeyX()== true )
+	{
+		DetonationStateChange( pDamageData );
+		
+		return;			
+	}
+
 #ifdef FINALITY_SKILL_SYSTEM //김창한
 	if( -1 < m_iFerdinandNPCUID )
 	{
@@ -729,6 +736,14 @@ void CX2GUEve::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
+	stateData.stateID			= USI_JUMP_UP_RECOVERY;
+	m_LuaManager.MakeTableReference( "ENSI_JUMP_UP_RECOVERY", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, JumpFrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUEve, ENSI_JUMP_UP_EventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
 	stateData.stateID			= USI_JUMP_DOWN;
 	m_LuaManager.MakeTableReference( "ENSI_JUMP_DOWN", stateData.stateID );
 	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
@@ -838,6 +853,7 @@ void CX2GUEve::InitStateCommon()
 	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, HyperModeEnd );
 #endif HYPER_MODE_FIX
 	m_StateList[stateData.stateID] = stateData;
+
 
 	stateData.Init();
 	stateData.stateID			= USI_DAMAGE_GROGGY;
@@ -956,6 +972,22 @@ void CX2GUEve::InitStateCommon()
 	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DamageRevengeStart );
 	stateData.OnCameraMove		= SET_CB_FUNC( CX2GUUser, DamageRevengeCameraMove );
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageRevengeEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
+	stateData.stateID			= USI_DAMAGE_RAGE;
+	m_LuaManager.MakeTableReference( "ENSI_MANA_BREAK", stateData.stateID );
+	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeStart );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeFramemove );	
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEventProcess );
+	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEnd );
+	m_StateList[stateData.stateID] = stateData;	
+
+	stateData.Init();
+	stateData.stateID			= USI_CANCEL_MODE;
+	m_LuaManager.MakeTableReference( "ENSI_COMBO_CANCEL", stateData.stateID );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUEve, COMMON_BUFF_FrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, COMMON_BUFF_EventProcess );	
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -6914,7 +6946,11 @@ void CX2GUEve::ENSI_JUMP_READY_EventProcess()
 		m_PhysicParam.nowSpeed.y = GetJumpSpeed();
 		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
 	}
-
+	else if( m_InputData.oneDown == true )
+	{
+		m_fCanNotJumpTime = 0.2f;
+		StateChange( GetJumpDownCancelID() );		
+	}
 	CommonEventProcess();
 }
 
@@ -7421,13 +7457,13 @@ void CX2GUEve::ENSI_DASH_JUMP_FrameMoveFuture()
 	{
 		StateChange( USI_JUMP_DOWN );
 	}
-	else if( m_InputData.pureUp == true && 
+	else if( m_InputData.oneC == false && m_InputData.oneDown == false && m_InputData.pureUp == true && 
 		m_InputData.pureRight == true && m_FrameDataNow.syncData.bIsRight	== true )
 	{
 		m_PhysicParam.nowSpeed.x			= GetDashSpeed()		* NOW_FLY_SPEED_SCALE;
 		m_PhysicParam.nowSpeed.y			= GetDashJumpSpeed()	* NOW_FLY_SPEED_SCALE;
 	}
-	else if( m_InputData.pureUp == true && 
+	else if( m_InputData.oneLCtr == false && m_InputData.oneDown == false && m_InputData.pureUp == true && 
 		m_InputData.pureLeft == true && m_FrameDataNow.syncData.bIsRight	== false )
 	{
 		m_PhysicParam.nowSpeed.x			= GetDashSpeed()		* NOW_FLY_SPEED_SCALE;
@@ -7451,16 +7487,19 @@ void CX2GUEve::ENSI_DASH_JUMP_EventProcess()
 			m_PhysicParam.nowSpeed.y = GetDashJumpSpeed();
 			m_bDownForce = false;
 		}
+		else if( m_bDownForce == true )
+		{
+			StateChange( USI_DASH );
+			m_bDownForce = false;
+		}
 		else
 		{
 			if( m_InputData.pureRight == true || m_InputData.pureLeft == true )
 			{
 				StateChangeDashIfPossible();
 			}
-			else
-			{
+			else			
 				StateChange( USI_JUMP_LANDING ); // not dash jump landing
-			}
 			m_bDownForce = false;
 		}
 	}
@@ -7528,11 +7567,17 @@ void CX2GUEve::ENSI_DASH_JUMP_EventProcess()
 
 
 
+	if( m_InputData.oneDown == true )
+	{
+		m_PhysicParam.nowSpeed.y = m_PhysicParam.fMaxGSpeed;
+		m_bDownForce = true;
+		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
+	}
 	if( m_InputData.oneUp == true && m_PhysicParam.nowSpeed.y <= 0.0f )
 	{
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = true;
 	}
-	if( m_InputData.oneDown == true )
+	else if( m_InputData.oneLCtr == true )
 	{
 		m_PhysicParam.nowSpeed.y = m_PhysicParam.fMaxGSpeed;
 		m_bDownForce = true;
@@ -7802,6 +7847,9 @@ void CX2GUEve::ENSI_JUMP_FLY_UP_EventProcess()
 
 		m_pComboGuide->ShowComboCommand(L"j", L"JJX");
 	}
+	else if( true == SpecialAttackEventProcess( CX2SkillTree::ASUT_AIR ) )
+	{
+	}
 	//else if( m_InputData.pureRight == true )
 	//{
 	//	if( m_FrameDataFuture.syncData.bIsRight == false )
@@ -7843,7 +7891,10 @@ void CX2GUEve::ENSI_JUMP_FLY_UP_EventProcess()
 	//	m_bDownForce = true;
 	//	m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
 	//}
-
+	else if( m_InputData.oneDoubleRight == true || m_InputData.oneDoubleLeft == true )
+	{
+		StateChange( ENSI_JUMP_DASH );
+	}	
 
 
 	CommonEventProcess();
@@ -7933,7 +7984,10 @@ void CX2GUEve::ENSI_JUMP_FLY_DOWN_EventProcess()
 	{
 		m_bDownForce = true;
 	}
-
+	else if( m_InputData.oneDoubleRight == true || m_InputData.oneDoubleLeft == true )
+	{
+		StateChange( ENSI_JUMP_DASH );
+	}	
 	CommonEventProcess();
 }
 
@@ -8062,7 +8116,7 @@ void CX2GUEve::ENSI_JUMP_DASH_EventProcess()
 		}
 		else if( m_bDownForce == true )
 		{
-			StateChange( ENSI_DASH_JUMP_POWER_LANDING );
+			StateChange( USI_DASH );
 			m_bDownForce = false;
 		}
 		else
@@ -8143,7 +8197,7 @@ void CX2GUEve::ENSI_JUMP_DASH_EventProcess()
 
 	if( m_InputData.pureDown == true )
 	{
-		//m_PhysicParam.nowSpeed.y = m_PhysicParam.fMaxGSpeed;
+		m_PhysicParam.nowSpeed.y = m_PhysicParam.fMaxGSpeed;
 		m_bDownForce = true;
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = false;
 	}
@@ -9434,7 +9488,7 @@ void CX2GUEve::ENSI_COMBO_ZZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.65f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -9517,7 +9571,7 @@ void CX2GUEve::ENSI_COMBO_ZZZ_EventProcess()
 {
 #ifdef EVE_ELECTRA
 	m_bReAttackZ1Right = m_FrameDataFuture.syncData.bIsRight;
-	m_fReAttackZ1Time = 0.2f;
+	//m_fReAttackZ1Time = 0.2f;
 
 	CancelComboWhenChangedDirection(4);
 
@@ -9663,7 +9717,7 @@ void CX2GUEve::ENSI_COMBO_ZZZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.7f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -9817,7 +9871,7 @@ void CX2GUEve::ENSI_COMBO_ZZZZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.85f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -9879,7 +9933,7 @@ void CX2GUEve::ENSI_COMBO_ZZZX_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.85f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -10465,7 +10519,7 @@ void CX2GUEve::ENSI_COMBO_X_EventProcess()
 
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.75f )
 		{
-			m_fCanNotAttackTime = 0.2f;
+			//m_fCanNotAttackTime = 0.2f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -10755,7 +10809,7 @@ void CX2GUEve::ENSI_COMBO_XX_EventProcess()
 #endif EVE_ELECTRA
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -11077,7 +11131,7 @@ void CX2GUEve::ENSI_COMBO_XXX_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 1.f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -11130,7 +11184,7 @@ void CX2GUEve::ENSI_COMBO_XXfrontX_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -11239,7 +11293,7 @@ void CX2GUEve::ENSI_COMBO_XXdownX_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -11573,7 +11627,7 @@ void CX2GUEve::ENSI_DASH_COMBO_Z_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.7f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -11725,7 +11779,7 @@ void CX2GUEve::ENSI_DASH_COMBO_ZZ_EventProcess()
 
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > fSkipTime )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -11913,7 +11967,7 @@ void CX2GUEve::ENSI_DASH_COMBO_ZZZ_EventProcess()
 
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > fSkipTime )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -12164,7 +12218,7 @@ void CX2GUEve::ENSI_DASH_COMBO_X_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.43f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -12216,7 +12270,7 @@ void CX2GUEve::ENSI_DASH_COMBO_XZ_EventProcess()
 
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > fSkipTime )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -12324,7 +12378,7 @@ void CX2GUEve::ENSI_JUMP_COMBO_Z_EventProcess()
 		//{
 		//	m_fCanNotJumpTime = 0.2f;
 		//}
-		m_fCanNotAttackTime = 0.1f; // 제자리 점프하면서 계속해서 공격하는 것을 막기 위해서
+		//m_fCanNotAttackTime = 0.1f; // 제자리 점프하면서 계속해서 공격하는 것을 막기 위해서
 
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -12426,7 +12480,7 @@ void CX2GUEve::ENSI_JUMP_COMBO_X_EventProcess()
 		//{
 		//	m_fCanNotJumpTime = 0.2f;
 		//}
-		m_fCanNotAttackTime = 0.2f;
+		//m_fCanNotAttackTime = 0.2f;
 
 		StateChange( ENSI_JUMP_COMBO_X_LANDING );
 	}
@@ -12946,7 +13000,7 @@ void CX2GUEve::ENSI_DASH_JUMP_COMBO_ZZZ_EventProcess()
 		//}
 		StateChange( USI_JUMP_LANDING );
 	}
-
+	SKILL_CANCEL_AFTER( 0.26f )
 	CommonEventProcess();
 }
 
@@ -16153,7 +16207,7 @@ void CX2GUEve::ENSI_SI3_DIMENSION_LINK_GUARDIAN_HYPER_EventProcess()
 */
 /*virtual*/ void CX2GUEve::COMMON_BUFF_FrameMove()
 {
-#ifndef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
+#ifdef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
 	// 각성 인지 아닌지에 따라 World색 변경
 	ChangeWorldColorByHyperMode();
 	ShowActiveSkillCutInAndLight( L"Dummy2_Lhand", 0.04f, 0 );
@@ -20847,7 +20901,7 @@ void CX2GUEve::ENSI_NS_DASH_COMBO_ZXX_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.56f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -21127,7 +21181,7 @@ void CX2GUEve::ENSI_EP_DASH_COMBO_ZZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.6f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -21164,10 +21218,11 @@ void CX2GUEve::ENSI_EP_DASH_COMBO_ZZZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.666667f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -21188,7 +21243,7 @@ void CX2GUEve::ENSI_EP_JUMP_COMBO_ZX_EventProcess()
 {
 	if( true == IsOnSomethingFuture() )
 	{
-		m_fCanNotAttackTime = 0.1f; // 제자리 점프하면서 계속해서 공격하는 것을 막기 위해서
+		//m_fCanNotAttackTime = 0.1f; // 제자리 점프하면서 계속해서 공격하는 것을 막기 위해서
 
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -21228,7 +21283,7 @@ void CX2GUEve::ENSI_EP_COMBO_XXdownX_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.666667f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -30930,7 +30985,7 @@ void CX2GUEve::ENSI_EBS_DASH_JUMP_COMBO_XZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			m_bDisableGravity = false;
 			m_PhysicParam.nowSpeed.y = -0.0001f;
 
@@ -30940,7 +30995,7 @@ void CX2GUEve::ENSI_EBS_DASH_JUMP_COMBO_XZ_EventProcess()
 	
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 		m_bDisableGravity = false;
 
 		m_PhysicParam.nowSpeed.y = -0.0001f;

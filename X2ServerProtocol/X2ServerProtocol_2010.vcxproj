@@ -141,6 +141,10 @@
       <Configuration>TW_TEST</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="US_SERVICE|Win32">
+      <Configuration>US_SERVICE</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="X2TOOL|Win32">
       <Configuration>X2TOOL</Configuration>
       <Platform>Win32</Platform>
@@ -273,6 +277,10 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='X2TOOL|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -423,6 +431,10 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC71.props" />
@@ -485,7 +497,9 @@
     <IntDir Condition="'$(Configuration)|$(Platform)'=='CN_SERVICE|Win32'">Release\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='CN_BETA|Win32'">Release\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='X2TOOL|Win32'">..\X2Lib\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'">..\X2Lib\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='X2TOOL|Win32'">Release\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'">Release\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='TW_TEST|Win32'">..\X2Lib\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='TW_INTERNAL|Win32'">..\X2Lib\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='TW_TEST|Win32'">$(Configuration)\</IntDir>
@@ -548,6 +562,7 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='CN_SERVICE|Win32'">$(ProjectName)</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='CN_BETA|Win32'">$(ProjectName)</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='X2TOOL|Win32'">$(ProjectName)</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'">$(ProjectName)</TargetName>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(DXSDK_DIR)Include;$(BOOST_DIR);..\KNCSDK\Include_2010;$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='IN_INTERNAL|Win32'">$(DXSDK_DIR)Include;$(BOOST_DIR);..\KNCSDK\Include_2010;$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='IN_TEST|Win32'">$(DXSDK_DIR)Include;$(BOOST_DIR);..\KNCSDK\Include_2010;$(IncludePath)</IncludePath>
@@ -577,7 +592,9 @@
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='CN_SERVICE|Win32'">$(DXSDK_DIR)Lib\x86;$(BOOST_DIR)libs;..\KNCSDK\lib_2010;$(LibraryPath)</LibraryPath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='CN_BETA|Win32'">$(DXSDK_DIR)Lib\x86;$(BOOST_DIR)libs;..\KNCSDK\lib_2010;$(LibraryPath)</LibraryPath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='X2TOOL|Win32'">$(SolutionDir)\Libs\ExternalLib\DXSDK\Include;$(SolutionDir)\Libs\ExternalLib\Boost\boost_1_44_0;$(SolutionDir)\KNCSDK\Include_2010;$(SolutionDir)\KOGGamePerformanceCheck\include;$(SolutionDir)\Libs\ExternalLib\freetype-2.4.11\include;$(SolutionDir)\XTRAP\Client;$(SolutionDir)\Steamworks;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'">$(SolutionDir)\Libs\ExternalLib\DXSDK\Include;$(SolutionDir)\Libs\ExternalLib\Boost\boost_1_44_0;$(SolutionDir)\KNCSDK\Include_2010;$(SolutionDir)\KOGGamePerformanceCheck\include;$(SolutionDir)\Libs\ExternalLib\freetype-2.4.11\include;$(SolutionDir)\XTRAP\Client;$(SolutionDir)\Steamworks;$(IncludePath)</IncludePath>
     <LibraryPath Condition="'$(Configuration)|$(Platform)'=='X2TOOL|Win32'">$(SolutionDir)\Libs\ExternalLib\DXSDK\Lib\x86;$(SolutionDir)\Libs\ExternalLib\Boost\boost_1_44_0\libs;$(SolutionDir)\KNCSDK\lib_2010;$(SolutionDir)\KOGGamePerformanceCheck\libs;$(SolutionDir)\Libs\ExternalLib\freetype-2.4.11\libs;$(SolutionDir)\XTRAP\Client;$(SolutionDir)\Steamworks\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'">$(SolutionDir)\Libs\ExternalLib\DXSDK\Lib\x86;$(SolutionDir)\Libs\ExternalLib\Boost\boost_1_44_0\libs;$(SolutionDir)\KNCSDK\lib_2010;$(SolutionDir)\KOGGamePerformanceCheck\libs;$(SolutionDir)\Libs\ExternalLib\freetype-2.4.11\libs;$(SolutionDir)\XTRAP\Client;$(SolutionDir)\Steamworks\lib;$(LibraryPath)</LibraryPath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='HK_SERVICE|Win32'">$(DXSDK_DIR)Include;$(BOOST_DIR);..\KNCSDK\Include_2010;$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='HK_TEST|Win32'">$(DXSDK_DIR)Include;$(BOOST_DIR);..\KNCSDK\Include_2010;$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='KR_OPENTEST|Win32'">$(DXSDK_DIR)Include;$(BOOST_DIR);..\KNCSDK\Include_2010;$(IncludePath)</IncludePath>
@@ -1050,6 +1067,27 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Lib>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'">
+    <ClCompile>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>./;./FSM;./Socket;../KncWX2Server/Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>X2TOOL;WIN32;NDEBUG;_LIB;_USE_32BIT_TIME_T;_HAS_ITERATOR_DEBUGGING=0;SERV_IRUHADEV_OFFLINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <ProgramDataBaseFileName>$(IntDir)X2ServerProtocol.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Full</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <OmitFramePointers>true</OmitFramePointers>
+    </ClCompile>
+    <Lib>
+      <OutputFile>$(OutDir)X2ServerProtocol.lib</OutputFile>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+    </Lib>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='TW_TEST|Win32'">
     <ClCompile>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -1393,6 +1431,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='CN_SERVICE|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='CN_BETA|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='X2TOOL|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='US_SERVICE|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='TW_SERVICE|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='TW_TEST|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='TW_INTERNAL|Win32'">Create</PrecompiledHeader>

@@ -458,6 +458,12 @@ void CX2GUChung::CreateNotEnoughMPEffect( D3DXVECTOR3 vPos, float fDegreeX, floa
 */
 /*virtual*/ void CX2GUChung::DamageReact( OUT CX2DamageManager::DamageData* pDamageData_ )
 {
+	if( m_OrgInputData.pureX == true && DamageFlushMp_KeyX()== true )
+	{
+		DetonationStateChange( pDamageData_ );
+		
+		return;			
+	}
 	//{{ kimhc // 2011.1.20 // 청 1차 전직
 #ifdef	CHUNG_FIRST_CLASS_CHANGE
 	// 퓨리가디언의 신진대사촉진 스킬에 의해 아이레린나, 일리피아의 손길 등의 Hp Up양을 증가 시킴
@@ -932,11 +938,20 @@ void CX2GUChung::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
+	stateData.stateID			= USI_JUMP_UP_RECOVERY;
+	m_LuaManager.MakeTableReference( "CSI_JUMP_UP_RECOVERY", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, JumpFrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUChung, JumpUpEventProcess );
+	m_StateList[stateData.stateID] = stateData;	
+
+	stateData.Init();
 	stateData.stateID			= USI_JUMP_DOWN;
 	m_LuaManager.MakeTableReference( "CSI_JUMP_DOWN", stateData.stateID );
 	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUChung, JumpDownEventProcess );
 	m_StateList[stateData.stateID] = stateData;
+	
 
 	stateData.Init();
 	stateData.stateID			= USI_JUMP_LANDING;
@@ -1122,6 +1137,22 @@ void CX2GUChung::InitStateCommon()
 	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DamageRevengeStart );
 	stateData.OnCameraMove		= SET_CB_FUNC( CX2GUUser, DamageRevengeCameraMove );
 	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DamageRevengeEventProcess );
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
+	stateData.stateID			= USI_DAMAGE_RAGE;
+	m_LuaManager.MakeTableReference( "CSI_MANA_BREAK", stateData.stateID );
+	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeStart );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeFramemove );	
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEventProcess );
+	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEnd );
+	m_StateList[stateData.stateID] = stateData;
+	
+	stateData.Init();
+	stateData.stateID			= USI_CANCEL_MODE;
+	m_LuaManager.MakeTableReference( "CSI_COMBO_CANCEL", stateData.stateID );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUChung, COMMON_BUFF_FrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, COMMON_BUFF_EventProcess );	
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -6081,7 +6112,7 @@ RENDER_HINT CX2GUChung::CommonRender_Prepare()
 */
 /*virtual*/ void CX2GUChung::COMMON_BUFF_FrameMove()
 {
-#ifndef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
+#ifdef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
 	// 각성 인지 아닌지에 따라 World색 변경
 	ChangeWorldColorByHyperMode();		
 	ShowActiveSkillCutInAndLightByBerserkMode(  0.004f, false  );
@@ -7415,6 +7446,11 @@ void CX2GUChung::JumpReadyEventProcess()
 	}
 	else if( SpecialAttackEventProcess() == true )
 	{
+	}
+	else if( m_InputData.oneDown == true )
+	{
+		m_fCanNotJumpTime = 0.2f;
+		StateChange( GetJumpDownCancelID() );		
 	}
 	else if( true == m_pXSkinAnimFuture->IsAnimationEnd()
 			|| true == m_InputData.pureRight || true == m_InputData.pureLeft )
@@ -9228,7 +9264,7 @@ void CX2GUChung::ComboZZZEventProcess()
 
 #ifdef SKILL_CANCEL_BY_HYPER_MODE // 김태환
 		IF_SKILL_CANCEL_AFTER( LOWER_BOUND_INPUT_TIME_CANCEL )
-		WALK_CANCEL_AFTER( LOWER_BOUND_INPUT_TIME_CANCEL )
+		BWALK_CANCEL_AFTER( LOWER_BOUND_INPUT_TIME_CANCEL )
 		DASH_CANCEL_AFTER( LOWER_BOUND_INPUT_TIME_CANCEL )
 #else // SKILL_CANCEL_BY_HYPER_MODE
 		// 캔슬입력이 가능한 시점

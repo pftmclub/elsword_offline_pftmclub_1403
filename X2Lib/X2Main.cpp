@@ -775,12 +775,12 @@ m_pMemoryHolder( NULL )
 #ifndef WITHOUT_MASS_FILE_TEST
 	WCHAR wszKomFileName[256] = L"";
 
-#ifdef ONLY_INT_KOM
+#ifndef ONLY_INT_KOM
 	WCHAR wszINTKomFileName[256] = L"dataINT.kom";
 	m_KOMList.push_back( wszINTKomFileName );
 #endif //ONLY_INT_KOM
 
-    const int KOM_FILE_COUNT = 150;
+    const int KOM_FILE_COUNT = 151;
     for( int i=1; i<=KOM_FILE_COUNT; i++ )
     {
         if( i < 10 )
@@ -5155,7 +5155,7 @@ bool CX2Main::StateChange( int stateID, int iDetailStateID )
 #ifdef DOWN_FRAME_TEST
 		g_pKTDXApp->SetFrameRate( NUM_TEST_FRAME );
 #else  DOWN_FRAME_TEST
-		g_pKTDXApp->SetFrameRate( 75.f );
+		g_pKTDXApp->SetFrameRate( 80.f );
 #endif DOWN_FRAME_TEST
 
 		//{{ 허상형 : [2009/7/21] //	나소드 메가폰 창 비활성화
@@ -5300,7 +5300,7 @@ bool CX2Main::StateChange( int stateID, int iDetailStateID )
 
 					//g_pData->GetEventScene()->BlackLayOutMove( false, 1.0f, false, true, 3.0f, 1.0f );
 
-					g_pKTDXApp->SetFrameRate( 40.f );
+					g_pKTDXApp->SetFrameRate( 80.f );
 					
 #ifdef HEAP_BROKEN_BY_ROOM
 					g_pData->DeleteAllRooms();
@@ -5379,7 +5379,7 @@ bool CX2Main::StateChange( int stateID, int iDetailStateID )
 #ifdef DOWN_FRAME_TEST
 					g_pKTDXApp->SetFrameRate( NUM_TEST_FRAME );
 #else  DOWN_FRAME_TEST
-					g_pKTDXApp->SetFrameRate( 70.f );
+					g_pKTDXApp->SetFrameRate( 80.f );
 #endif DOWN_FRAME_TEST
 
 #ifdef HEAP_BROKEN_BY_ROOM
@@ -5400,7 +5400,7 @@ bool CX2Main::StateChange( int stateID, int iDetailStateID )
 
 			case XS_SQUARE_GAME:
 				{
-					g_pKTDXApp->SetFrameRate( 40.f );
+					g_pKTDXApp->SetFrameRate( 80.f );
 
 					SAFE_DELETE(g_pTFieldGame);
 					m_pNowState = new CX2StateSquareGame();
@@ -5425,7 +5425,7 @@ bool CX2Main::StateChange( int stateID, int iDetailStateID )
 				break;				
 			case XS_BATTLE_FIELD:
 				{
-					g_pKTDXApp->SetFrameRate( 72.f );
+					g_pKTDXApp->SetFrameRate( 80.f );
 					
 #ifdef HEAP_BROKEN_BY_ROOM
 					g_pData->DeleteAllRooms();
@@ -5443,7 +5443,7 @@ bool CX2Main::StateChange( int stateID, int iDetailStateID )
 #ifdef ADDED_RELATIONSHIP_SYSTEM // 마을 객체를 없애줘야할지..확인필요.
 			case XS_WEDDING_GAME:
 				{
-					g_pKTDXApp->SetFrameRate( 40.f );
+					g_pKTDXApp->SetFrameRate( 80.f );
 					//SAFE_DELETE(g_pTFieldGame);
 					m_pNowState = new CX2StateWeddingGame();
 

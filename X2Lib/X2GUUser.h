@@ -57,6 +57,7 @@ typedef srutil::delegate1<void, CKTDGLineMap*> DelegatePhysicProcessPortalByGame
 
 
 
+
 // 특정 애니메이션 시간이 지난 후에 ASDCQWER를 눌렀을 때 (QWER추가)
 #define ELSE_IF_ASDC_PRESSED_AFTER( time ) \
 	else if( (time) >= 0.f && m_pXSkinAnimFuture->GetNowAnimationTime() > (time) && \
@@ -92,7 +93,8 @@ typedef srutil::delegate1<void, CKTDGLineMap*> DelegatePhysicProcessPortalByGame
 #define DASH_CANCEL_AFTER( time ) \
 	else if( (time) >= 0.f && m_pXSkinAnimFuture->GetNowAnimationTime() > (time) && \
 	( true == m_InputData.pureDoubleRight || true == m_InputData.pureDoubleLeft ) ) \
-	{ StateChangeDashIfPossible(); }
+	{ StateChangeDashIfPossible(); }	
+
 	
 #ifdef SKILL_CANCEL_BY_HYPER_MODE // 김태환
 
@@ -101,6 +103,13 @@ typedef srutil::delegate1<void, CKTDGLineMap*> DelegatePhysicProcessPortalByGame
 	else if( (time) >= 0.f && m_pXSkinAnimFuture->GetNowAnimationTime() > (time) && \
 	SpecialAttackEventProcess() == true ) \
 	{ } \
+	else if( m_InputData.oneDoubleDown == true && GetNowMp() > 49.f ) \
+	{ float fMPConsume = 50.f; \
+	  UpNowMp( -fMPConsume); \
+	  StateChange( GetComboCancelID() ); } \
+	else if( m_InputData.oneUp == true ) \
+	{ if( GetAttackSuccess(false) == true ) \
+	{ StateChange( USI_JUMP_READY ); } } \
 	else if( false == IsThereEffectiveBlackHoleDamageEffect() && \
 	m_InputData.oneLCtr == true && m_FrameDataFuture.syncData.m_HyperModeCount > 0 && \
 	( GetRemainHyperModeTime() <= 0.0f || true == GetCanChangeHyperModeInHyperModeState() ) && \
@@ -112,6 +121,13 @@ typedef srutil::delegate1<void, CKTDGLineMap*> DelegatePhysicProcessPortalByGame
 	if( (time) >= 0.f && m_pXSkinAnimFuture->GetNowAnimationTime() > (time) && \
 	SpecialAttackEventProcess() == true ) \
 	{ } \
+	else if( m_InputData.oneDoubleDown == true && GetNowMp() > 49.f ) \
+	{ float fMPConsume = 50.f; \
+	  UpNowMp( -fMPConsume); \
+	  StateChange( GetComboCancelID() ); } \
+	else if( m_InputData.oneUp == true ) \
+	{ if( GetAttackSuccess(false) == true ) \
+	{ StateChange( USI_JUMP_READY ); } } \
 	else if( false == IsThereEffectiveBlackHoleDamageEffect() && \
 	m_InputData.oneLCtr == true && m_FrameDataFuture.syncData.m_HyperModeCount > 0 && \
 	( GetRemainHyperModeTime() <= 0.0f || true == GetCanChangeHyperModeInHyperModeState() ) && \
@@ -187,15 +203,21 @@ typedef srutil::delegate1<void, CKTDGLineMap*> DelegatePhysicProcessPortalByGame
 //{{오현빈 // 2012-04-30 // 스킬슬롯 체인지 없이 확장 스킬 사용 할 수 있도록 수정
 // 스킵 포인트에 필살기 키가 눌려졌는지 (QWER추가)
 #define ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_C \
-	else if( m_InputData.pureUp == true || m_InputData.pureDown == true || m_InputData.pureRight == true || m_InputData.pureLeft == true \
+	else if( m_InputData.pureDown == true || m_InputData.pureRight == true || m_InputData.pureLeft == true \
 	|| m_InputData.pureA == true || m_InputData.pureS == true || m_InputData.pureD == true || m_InputData.pureC == true \
 	|| m_InputData.pureQ == true || m_InputData.pureW == true || m_InputData.pureE == true || m_InputData.pureR == true )
+
+//Jump Cancel
+#define JUMP_CANCEL \
+	else if( m_InputData.oneUp == true ) \
+	{ if( GetAttackSuccess(false) == true ) \
+	{ StateChange( USI_JUMP_READY ); } } \
 
 
 
 // 스킵 포인트에 ZX 필살기 (QWER추가)
 #define ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_ZXC \
-	else if( m_InputData.pureUp == true || m_InputData.pureDown == true || m_InputData.pureRight == true || m_InputData.pureLeft == true \
+	else if( m_InputData.pureDown == true || m_InputData.pureRight == true || m_InputData.pureLeft == true \
 	|| m_InputData.pureZ == true || m_InputData.pureX == true \
 	|| m_InputData.pureA == true || m_InputData.pureS == true || m_InputData.pureD == true || m_InputData.pureC == true \
 	|| m_InputData.pureQ == true || m_InputData.pureW == true || m_InputData.pureE == true || m_InputData.pureR == true )
@@ -204,7 +226,7 @@ typedef srutil::delegate1<void, CKTDGLineMap*> DelegatePhysicProcessPortalByGame
 
 // 스킵 포인트에 ZX 필살기, 각성, 즉, 아무키나 다 (QWER추가)
 #define ELSE_IF_KEY_PRESSED_AT_SKIP_POINT_ZXCAS \
-	else if( m_InputData.pureUp == true || m_InputData.pureDown == true || m_InputData.pureRight == true || m_InputData.pureLeft == true \
+	else if( m_InputData.pureDown == true || m_InputData.pureRight == true || m_InputData.pureLeft == true \
 	|| m_InputData.pureZ == true || m_InputData.pureX == true \
 	|| m_InputData.pureA == true || m_InputData.pureS == true || m_InputData.pureD == true || m_InputData.pureC == true \
 	|| m_InputData.pureQ == true || m_InputData.pureW == true || m_InputData.pureE == true || m_InputData.pureR == true \
@@ -212,11 +234,19 @@ typedef srutil::delegate1<void, CKTDGLineMap*> DelegatePhysicProcessPortalByGame
 //}}오현빈 // 2012-04-30 // 스킬슬롯 체인지 없이 확장 스킬 사용 할 수 있도록 수정
 
 
+
+#define COMBO_CANCEL_BY_INPUT_AFTER \
+	else if( m_InputData.oneDoubleDown == true && GetNowMp() > 49.f ) \
+	{ float fMPConsume = 50.f; \
+	  UpNowMp( -fMPConsume); \
+	  StateChange( GetComboCancelID() ); }
+
+
 // 방향이 바뀌면 선입력된 콤보를 취소시킨다
 #define CANCEL_COMBO_ON_DIRECTION_CHANGE( eventFlagCount ) \
 	if( ( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true) || \
 		( m_InputData.pureRight == true && m_FrameDataFuture.syncData.bIsRight == false) ) \
-	{ for( int i=0; i< (int)(eventFlagCount); i++ ) m_FrameDataFuture.stateParam.bEventFlagList[i] = false; } 
+	{ for( int i=0; i< (int)(eventFlagCount); i++ ) m_FrameDataFuture.stateParam.bEventFlagList[i] = false; } \
 
 
 
@@ -1348,6 +1378,11 @@ public:
 
 		virtual int					GetComboZStateID() const { return USI_WAIT; }
 		virtual int					GetComboXStateID() const { return USI_WAIT; }
+		virtual int					GetJumpDownCancelID() const { return USI_JUMP_DOWN; }
+		virtual int					GetComboCancelID() const { return USI_WAIT; }
+		virtual int					GetManaBreakID() const { return USI_WAIT; }
+		virtual int					GetRecoveryID() const { return USI_JUMP_UP; }
+		virtual int					JumpDownAtkStateID() const { return USI_WAIT; }
 
 #ifdef RIDING_SYSTEM
 		// 오현빈 // 코드 정리를 위해 스테이트 얻는 함수 추가
@@ -1423,6 +1458,16 @@ public:
 		virtual void				DamageReactStateChange( CX2DamageManager::DamageData* pDamageData, int iRevengeAttack = -1 );
 #endif //ARA_CHANGE_CLASS_FIRST
 		virtual void				DetonationStateChange( CX2DamageManager::DamageData* pDamageData );
+
+		void 						JumpFrameMove();
+
+		virtual bool				DamageFlushMp_KeyX();
+		void 						DetonationStateChangeKeyZ( CX2DamageManager::DamageData* pDamageData );
+		void						DetonationStateChangeStart();
+		void						DetonationStateChangeEnd();
+		void 						DetonationStateChangeFramemove();
+		void 						DetonationStateChangeInit();
+		void 						DetonationStateChangeEventProcess();
 
 		int							GetDamageCount(){ return m_nDamageCount; }
 		void						SetDamageCount( int nCount ) { m_nDamageCount = nCount; }

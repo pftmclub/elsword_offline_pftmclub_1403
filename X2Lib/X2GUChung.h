@@ -279,7 +279,9 @@ public:
 
 		CSI_A_CIP_ARTILLERY_NOVA_FIRE,		// 아틸러리 노바 발사
 #endif // UPGRADE_SKILL_SYSTEM_2013 // 청 스킬 개편, 김종훈
-
+		USI_JUMP_UP_RECOVERY,
+		USI_DAMAGE_RAGE,
+		USI_CANCEL_MODE,
 	};
 
 	enum CHUNG_MAJOR_PARTICLE_INSTANCE_ID
@@ -792,6 +794,9 @@ public:
 
 	virtual int GetComboZStateID() const { return CSI_COMBO_Z; }
 	virtual int GetComboXStateID() const { return CSI_COMBO_X; }
+	virtual int GetManaBreakID() const { return USI_DAMAGE_RAGE; }
+	virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
+	virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
 	//							스테이트 함수 시작
 	///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -859,6 +864,32 @@ protected:
 	void RidingHyperModeFrameMove();
 	void CommonHyperModeFrameMove( float fTime1_, float fTime2_, float fTime3_, bool bSound_ = false );
 #endif // MODIFY_RIDING_PET_AWAKE
+
+	//virtual void				DetonationStateChange( CX2DamageManager::DamageData* pDamageData );
+	void						DetonationStateChangeStart();
+	void						DetonationStateChangeEnd();
+	void 						DetonationStateChangeFramemove();
+	void 						DetonationStateChangeInit();
+	void 						DetonationStateChangeEventProcess();
+
+	// DamageAirSmall
+	void DamageAirSmallStartFuture();
+	void DamageAirSmallEventProcess();
+
+	// DamageAirDown
+	void DamageAirDownEventProcess();
+
+	// DamageAirDown_INVINCIBLE
+	void DamageAirDownInvincibleEventProcess();
+		
+
+	// DamageAirFall
+	void DamageAirFallEventProcess();
+	// DamageAirUp
+	void DamageAirUpEventProcess();
+	// DamageAirFly
+	void DamageAirFlyEventProcess();
+
 	// CSI_DAMAGE_SMALL_FRONT and CSI_DAMAGE_SMALL_BACK
 	void DamageSmallEventProcess();
 

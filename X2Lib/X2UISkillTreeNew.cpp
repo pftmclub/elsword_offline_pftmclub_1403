@@ -404,15 +404,9 @@ CX2SkillTreeSlotData::CX2SkillTreeSlotData()
 			{
 				if ( CX2UISkillTreeNew::STST_SELECT_SKILL_LEFT == iIndexInTier )	/// 왼쪽 스킬이면, 선택 가능 표시
 				{
-//{{ Iruha : 2026-08-27 // SKILLTREE_NO_LOCK removes the choice restriction, so the "AbleChoice" indicator no longer applies
-#ifdef SERV_IRUHADEV_SKILLTREE_NO_LOCK
-					ShowSlotPicture( false, pSlot, STSAPT_SELECT );
-#else
 					ShowSlotPicture( true, pSlot, STSAPT_SELECT );
 
 					pDLGUISkillTree->ChangeSequence( pSlot, true );		/// 2지선다 선택 가능 최상위로 설정
-#endif SERV_IRUHADEV_SKILLTREE_NO_LOCK
-//}}
 				}
 				else	/// 오른쪽 스킬이면, 선택 가능 해제 ( 왼쪽에서 출력할 것이다. )
 					ShowSlotPicture( false, pSlot, STSAPT_SELECT );
@@ -2311,7 +2305,7 @@ void CX2UISkillTreeNew::CreateSkillTree( CX2Unit::UNIT_CLASS eUnitClass )
 			m_iMaxSkillRowNum = row;
 	}
 
-	SetBlindSelectSkill();						/// 2지선다 스킬 중 선택되지 않은 스킬에 대한 블라인드 설정
+	//SetBlindSelectSkill();						/// 2지선다 스킬 중 선택되지 않은 스킬에 대한 블라인드 설정
 
 	CreateSkillTreePortrait( pControlList );	/// 스킬 트리 초상화 설정
 
@@ -2773,7 +2767,7 @@ void CX2UISkillTreeNew::UpdateSkillTree()
 	// 1. 지금 익힐 수 있는 스킬 여부 : 버튼의 활성화/비활성화. bool 값에 따라서
 	// 2. 1레벨이라도 익힌 스킬 여부 : 스킬 슬롯의 드래그 활성화 / 비활성화(패시브면 드래그 안 되게), 텍스쳐 변경. 스트링 설정 (레벨/최대레벨)
 
-	SetBlindSelectSkill();		/// 2지선다 스킬 중 선택되지 않은 스킬에 대한 블라인드 설정
+	//SetBlindSelectSkill();		/// 2지선다 스킬 중 선택되지 않은 스킬에 대한 블라인드 설정
 
 	/// 모든 스킬 슬롯 갱신
 	for(map<CX2SkillTree::SKILL_ID, SkillSlotUI>::iterator it =	m_mapSkillSlotUISet.begin(); it != m_mapSkillSlotUISet.end(); ++it)
@@ -6347,17 +6341,6 @@ void CX2UISkillTreeNew::SetBlindSelectSkill()
 				return;
 			}
 
-//{{ Iruha : 2026-09-15 // SKILLTREE_NO_LOCK: SetBlindSelectSkill is the real gate - it
-//   sets m_bSelectSkillBlind, which disables dragging, the learn button, and shows the
-//   no-learn overlay for whichever of the two choice skills is NOT already invested in.
-//   The other call site in this file (ShowSlotPicture/STSAPT_SELECT) is cosmetic only -
-//   patching it alone left this function still locking out the opposite choice.
-#ifdef SERV_IRUHADEV_SKILLTREE_NO_LOCK
-			itLeftUISet->second.m_bSelectSkillBlind		= false;
-			itRightUISet->second.m_bSelectSkillBlind	= false;
-
-			continue;
-#else
 #if defined( _IN_HOUSE_ ) || defined( _IN_HOUSE_SERVICE_READY_QA_ ) || defined( _OPEN_TEST_ ) || defined( _OPEN_TEST_2_ )
 			/// 개발자 기능 - 양쪽 모두 스킬이 찍혀있다면, 블라인드 해제
 			if( true == g_pMain->IsMyAuthLevelHigherThan( CX2User::XUAL_DEV ) )
@@ -6414,8 +6397,6 @@ void CX2UISkillTreeNew::SetBlindSelectSkill()
 					itRightUISet->second.m_bSelectSkillBlind	= false;	/// 2지선다 우측 스킬 블라인드 해제
 				}
 			}
-#endif SERV_IRUHADEV_SKILLTREE_NO_LOCK
-//}}
 		}
 	}
 }

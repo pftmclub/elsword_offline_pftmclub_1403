@@ -246,6 +246,11 @@ public:
 		ASI_SA_AYR_ENERGY_VOID_END,			/// 아라 2차 전직 명왕 - 초진공장 마무리
 		//////////////////////////////////////////////////////////////////////120
 		ASI_SA_AYR_SUPPRESSION_ENERGY,		/// 아라 2차 전직 명왕 - 제압 - 기
+		USI_JUMP_UP_RECOVERY,
+		USI_DAMAGE_RAGE,
+		USI_CANCEL_MODE,
+		USI_CAN_NOT_ATTACK_JUMP_DOWN,
+		USI_JUMP_DOWN_CANCEL,
 #endif // SERV_ARA_CHANGE_CLASS_SECOND
 	#pragma endregion 2-1, 2-2차 전직
 
@@ -641,6 +646,10 @@ public:
 
 	virtual int GetComboZStateID() const { return ASI_COMBO_Z; }
 	virtual int GetComboXStateID() const { return ASI_COMBO_X; }
+	virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
+	virtual int	GetJumpCancelID() const { return USI_JUMP_READY; }
+	virtual int GetManaBreakID() const { return USI_DAMAGE_RAGE; }
+	virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
 
 #ifdef SERV_ARA_CHANGE_CLASS_SECOND // 김태환
 	/// 기탄 데미지 이펙트 생성 함수
@@ -724,6 +733,7 @@ protected:
 	void JumpReadyEventProcess();
 	void JumpUpEventProcess();
 	void JumpDownEventProcess();
+	void USI_CAN_NOT_ATTACK_JUMP_DOWN_EventProcess();
 	void JumpLandingStart();
 	void JumpLandingEventProcess();
 	#pragma endregion ASI_WAIT, WALK, JUMP_READY, JUMP_UP, JUMP_DOWN, JUMP_LANDING
@@ -748,6 +758,24 @@ protected:
 	void DashJumpPowerLandingStart();
 	void DashJumpPowerLandingEventProcess();
 	#pragma endregion ASI_DASH, DASH_END, DASH_JUMP, DASH_JUMP_LANDING, POWER_LANDING
+
+	// DamageAirSmall
+	void DamageAirSmallStartFuture();
+	void DamageAirSmallEventProcess();
+
+	// DamageAirDown
+	void DamageAirDownEventProcess();
+
+	// DamageAirDown_INVINCIBLE
+	void DamageAirDownInvincibleEventProcess();
+		
+
+	// DamageAirFall
+	void DamageAirFallEventProcess();
+	// DamageAirUp
+	void DamageAirUpEventProcess();
+	// DamageAirFly
+	void DamageAirFlyEventProcess();
 			
 	#pragma region state set
 	void DamageSmallEventProcess();

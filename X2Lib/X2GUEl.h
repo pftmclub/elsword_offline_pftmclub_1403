@@ -156,6 +156,8 @@ public:
 
 		ESI_QUICK_STANDUP_ATTACK_BACK_ADVANCED,		/// 상급 기사 숙련, 대미지를 입어 앞으로 뒤를 때 공격 입력 시, 해당 State 로 전환
 		ESI_QUICK_STANDUP_ATTACK_FRONT_ADVANCED,	/// 상급 기사 숙련, 대미지를 입어 뒤로 뒤를 때 공격 입력 시, 해당 State 로 전환
+
+		ESI_HA_SGM_SWORD_OF_RELICS_EX,
 		
 		// 액티브
 		ESI_A_SGM_PROVOKE,							/// 도발 시작 
@@ -220,6 +222,11 @@ public:
 
 		//하이퍼 액티브
 		ESI_SI_HA_SBH_ANCIENT_FIRE,					/// 에인션트 파이어
+		USI_JUMP_UP_RECOVERY,
+		USI_DAMAGE_RAGE,
+		USI_CANCEL_MODE,
+		USI_CAN_NOT_ATTACK_JUMP_DOWN,
+		USI_JUMP_DOWN_CANCEL,
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -382,6 +389,23 @@ protected:
 	//USI_DAMAGE_SMALL_BACK
 	void DamageSmallEventProcess();
 
+	// DamageAirSmall
+	void DamageAirSmallEventProcess();
+
+	// DamageAirDown
+	void DamageAirDownEventProcess();
+
+	// DamageAirDown_INVINCIBLE
+	void DamageAirDownInvincibleEventProcess();
+		
+
+	// DamageAirFall
+	void DamageAirFallEventProcess();
+	// DamageAirUp
+	void DamageAirUpEventProcess();
+	// DamageAirFly
+	void DamageAirFlyEventProcess();
+
 	//ESI_DAMAGE_BIG_FRONT
 	//ESI_DAMAGE_BIG_BACK
 	void DamageBigStart();
@@ -532,6 +556,8 @@ protected:
 	void ESI_SI_A_EL_ENDURANCE_POWER_ACTIVE_StateStart();
 	void DoStateEndurancePowerRage(bool bIsWayOfSword_ );
 	void ProcessEndurancePowerSkill();
+
+	virtual bool		DamageFlushMp_KeyX();
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 세이버 나이트 스테이트 함수
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -834,6 +860,10 @@ public:
 
 	virtual int GetComboZStateID() const { return ESI_COMBO_Z; }
 	virtual int GetComboXStateID() const { return ESI_COMBO_X; }
+	virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
+	virtual int	GetJumpCancelID() const { return USI_JUMP_READY; }
+	virtual int GetManaBreakID() const { return ESI_SA_A_EL_ENDURANCE_POWER_ACTIVE_MEMO; }
+	virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
 	////////////////////////////////////////////////
 	//검의 길
 #ifdef ELSWORD_WAY_OF_SWORD

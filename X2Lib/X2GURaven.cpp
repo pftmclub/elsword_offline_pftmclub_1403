@@ -428,6 +428,12 @@ void CX2GURaven::DamageReact( CX2DamageManager::DamageData* pDamageData )
 {
 	KTDXPROFILE();
 	
+	if( m_OrgInputData.pureX == true && DamageFlushMp_KeyX()== true )
+	{
+		DetonationStateChange( pDamageData );
+		
+		return;			
+	}
 #ifdef RAVEN_WEAPON_TAKER
 	// 상처, 출혈(미구현), 블라인드, 연무블라인드, 스턴, 혼란, 공황, 프레스, 동작둔화, 이동둔화 지속시간 감소
 	CX2DamageManager::EXTRA_DAMAGE_TYPE& eEDT = pDamageData->m_ExtraDamage.m_ExtraDamageType;
@@ -1177,6 +1183,14 @@ void CX2GURaven::InitStateCommon()
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
+	stateData.stateID			= USI_JUMP_UP_RECOVERY;
+	m_LuaManager.MakeTableReference( "RSI_JUMP_UP_RECOVERY", stateData.stateID );
+	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, JumpFrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GURaven, RSI_JUMP_UP_EventProcess );
+	m_StateList[stateData.stateID] = stateData;	
+
+	stateData.Init();
 	stateData.stateID			= USI_JUMP_DOWN;
 	m_LuaManager.MakeTableReference( "RSI_JUMP_DOWN", stateData.stateID );
 	stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GUUser, JumpFrameMoveFuture );
@@ -1248,6 +1262,22 @@ void CX2GURaven::InitStateCommon()
 	stateData.StateStartFuture	= SET_CB_FUNC( CX2GUUser, HyperModeStartFuture );
 	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, HyperModeEnd );
 #endif HYPER_MODE_FIX
+	m_StateList[stateData.stateID] = stateData;
+
+	stateData.Init();
+	stateData.stateID			= USI_CANCEL_MODE;
+	m_LuaManager.MakeTableReference( "RSI_COMBO_CANCEL", stateData.stateID );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GURaven, COMMON_BUFF_FrameMove );
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, COMMON_BUFF_EventProcess );	
+	m_StateList[stateData.stateID] = stateData;	
+
+	stateData.Init();
+	stateData.stateID			= USI_DAMAGE_RAGE;
+	m_LuaManager.MakeTableReference( "RSI_MANA_BREAK", stateData.stateID );
+	stateData.StateStart		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeStart );
+	stateData.OnFrameMove		= SET_CB_FUNC( CX2GUUser, DetonationStateChangeFramemove );	
+	stateData.OnEventProcess	= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEventProcess );
+	stateData.StateEnd			= SET_CB_FUNC( CX2GUUser, DetonationStateChangeEnd );
 	m_StateList[stateData.stateID] = stateData;
 
 	stateData.Init();
@@ -3396,7 +3426,7 @@ void CX2GURaven::InitStateWeaponTaker()
 				m_LuaManager.MakeTableReference( "RSI_A_RWT_BARRAGE_ATTACK_AIR", stateData.stateID );
 				stateData.OnEventProcess	= SET_CB_FUNC( CX2GURaven, RSI_A_RWT_BARRAGE_ATTACK_AIR_EventProcess );
 				stateData.OnFrameMove		= SET_CB_FUNC( CX2GURaven, RSI_A_RWT_BARRAGE_ATTACK_AIR_FrameMove );
-#ifdef RAVEN_LIMIT_AIR_COMBO		/// 공중 무한 채공 방지용
+#ifndef RAVEN_LIMIT_AIR_COMBO		/// 공중 무한 채공 방지용
 					stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GURaven, RSI_A_RWT_BARRAGE_ATTACK_AIR_FrameMoveFutrue );
 #endif RAVEN_LIMIT_AIR_COMBO
 				m_StateList[stateData.stateID] = stateData;
@@ -3432,7 +3462,7 @@ void CX2GURaven::InitStateWeaponTaker()
 				stateData.stateID			= RSI_SA_RWT_BURSTING_BLADE_AIR;
 				m_LuaManager.MakeTableReference( "RSI_SA_RWT_BURSTING_BLADE_AIR", stateData.stateID );
 				stateData.StateStart		= SET_CB_FUNC( CX2GURaven, RSI_SA_RWT_BURSTING_BLADE_ATTACK_StateStart );
-#ifdef RAVEN_LIMIT_AIR_COMBO			/// 공중 채공 콤보 방지용
+#ifndef RAVEN_LIMIT_AIR_COMBO			/// 공중 채공 콤보 방지용
 				stateData.OnEventProcess	= SET_CB_FUNC( CX2GURaven, RSI_SA_RWT_BURSTING_BLADE_ATTACK_AIR_EventProcess );
 				stateData.OnFrameMoveFuture	= SET_CB_FUNC( CX2GURaven, RSI_SA_RWT_BURSTING_BLADE_ATTACK_AIR_FrameMoveFuture );
 #else  RAVEN_LIMIT_AIR_COMBO
@@ -6160,7 +6190,11 @@ void CX2GURaven::RSI_JUMP_READY_EventProcess()
 		m_PhysicParam.nowSpeed.y = GetJumpSpeed();
 		m_FrameDataFuture.syncData.position.y += LINE_RADIUS;
 	}
-
+	else if( m_InputData.oneDown == true )
+	{
+		m_fCanNotJumpTime = 0.2f;
+		StateChange( GetJumpDownCancelID() );		
+	}
 	CommonEventProcess();
 }
 
@@ -6522,7 +6556,7 @@ void CX2GURaven::RSI_DASH_JUMP_EventProcess()
 		}
 		else if( m_bDownForce == true )
 		{
-			StateChange( RSI_DASH_JUMP_POWER_LANDING );
+			StateChange( USI_DASH );
 			m_bDownForce = false;
 		}
 		else
@@ -7527,7 +7561,7 @@ void CX2GURaven::RSI_SUPER_DASH_EventProcess()
 
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
-	SKILL_CANCEL_AFTER( m_fSkillCancelAfter )
+	SKILL_CANCEL_AFTER( 0.33f )
 
 	CommonEventProcess();
 
@@ -7692,14 +7726,14 @@ void CX2GURaven::RSI_COMBO_Z_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.6f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
 		StateChange( USI_WAIT );
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 	}
 	CommonEventProcess();
 }
@@ -7754,7 +7788,7 @@ void CX2GURaven::RSI_COMBO_ZZ_EventProcess()
 	}
 	else if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{	
-		m_fCanNotAttackTime = 0.1f;
+		//m_fCanNotAttackTime = 0.1f;
 		StateChange( USI_WAIT );
 	}
 
@@ -7764,7 +7798,7 @@ void CX2GURaven::RSI_COMBO_ZZ_EventProcess()
 void CX2GURaven::RSI_COMBO_ZZZ_EventProcess()
 {
 	m_bReAttackZ1Right = m_FrameDataFuture.syncData.bIsRight;
-	m_fReAttackZ1Time = 0.2f;
+	//m_fReAttackZ1Time = 0.2f;
 
 	if( m_InputData.pureLeft == true && m_FrameDataFuture.syncData.bIsRight == true )
 	{
@@ -8146,7 +8180,7 @@ void CX2GURaven::RSI_COMBO_ZZZX_EventProcess()
 	{	
 		StateChange( USI_WAIT );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -8244,7 +8278,7 @@ void CX2GURaven::RSI_COMBO_ZZXX_EventProcess()
 	{	
 		StateChange( USI_WAIT );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -8476,7 +8510,7 @@ void CX2GURaven::RSI_DASH_COMBO_Z_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
 		{
-			m_fCanNotAttackTime = 0.1f;
+			//m_fCanNotAttackTime = 0.1f;
 			StateChange( USI_WAIT );
 		}
 	}
@@ -8674,7 +8708,7 @@ void CX2GURaven::RSI_DASH_JUMP_COMBO_ZZ_EventProcess()
 	{
 		StateChange( RSI_DASH_JUMP_COMBO_ZZ_Landing );
 	}
-
+	SKILL_CANCEL_AFTER( 0.25f )
 	CommonEventProcess();
 }
 
@@ -8838,7 +8872,7 @@ void CX2GURaven::RSI_JUMP_COMBO_Z_EventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -8890,7 +8924,7 @@ void CX2GURaven::RSI_JUMP_COMBO_X_EventProcess()
 	{
 		if( m_FrameDataFuture.stateParam.bEventFlagList[0] == true )
 		{
-			m_fCanNotJumpTime = 0.2f;
+			//m_fCanNotJumpTime = 0.2f;
 		}
 		StateChange( USI_JUMP_LANDING );
 	}
@@ -10788,7 +10822,7 @@ void CX2GURaven::RSI_SI3_MAGNUM_BLASTER_HYPER_End()
 */
 /*virtual*/ void CX2GURaven::COMMON_BUFF_FrameMove()
 {
-#ifndef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
+#ifdef UPGRADE_SKILL_SYSTEM_2013 // 공통 스킬 개편, 김종훈
 	// 각성 인지 아닌지에 따라 World색 변경
 	ChangeWorldColorByHyperMode();
 	ShowActiveSkillCutInAndLight( L"Dummy1_Rhand", 0.004f, 0 );
@@ -10861,7 +10895,7 @@ void CX2GURaven::RSI_SOUL_TAKER_DASH_COMBO_ZZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.9f )
 		{
-			m_fCanNotAttackTime = 0.1f;	
+			//m_fCanNotAttackTime = 0.1f;	
 			StateChange( USI_WAIT );
 		}
 	}
@@ -10896,11 +10930,11 @@ void CX2GURaven::RSI_SOUL_TAKER_DASH_COMBO_ZZZ_EventProcess()
 	{
 		if( m_pXSkinAnimFuture->GetNowAnimationTime() > 0.84f )
 		{
-			m_fCanNotAttackTime = 0.1f;	
+			//m_fCanNotAttackTime = 0.1f;	
 			StateChange( USI_WAIT );
 		}
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -10915,7 +10949,7 @@ void CX2GURaven::RSI_SOUL_TAKER_COMBO_ZZZupZ_FrameMoveFuture()
 	{
 		m_PhysicParam.nowSpeed.y = 1500.f;
 	}
-
+	JUMP_CANCEL
 	CommonFrameMoveFuture();
 }
 
@@ -11007,7 +11041,7 @@ void CX2GURaven::RSI_SOUL_TAKER_COMBO_XXZZ8_EventProcess()
 		m_iSuccessiveHit_OneZ++;
 	}
 #endif BALANCE_BLADE_MASTER_20130117
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -11167,7 +11201,7 @@ void CX2GURaven::RSI_OVER_TAKER_COMBO_XXdownXdownXdownX_EventProcess()
 	{
 		StateChange( USI_WAIT );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -11284,7 +11318,7 @@ void CX2GURaven::RSI_OVER_TAKER_COMBO_XXfrontX_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -11315,7 +11349,7 @@ void CX2GURaven::RSI_OVER_TAKER_DASH_JUMP_COMBO_ZX_EventProcess()
 	{
 		StateChange( RSI_OVER_TAKER_DASH_JUMP_COMBO_ZX_LANDING );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -11383,7 +11417,6 @@ void CX2GURaven::RSI_OVER_TAKER_DASH_JUMP_COMBO_ZX_LANDING_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
-
 	CommonEventProcess();
 }
 
@@ -11404,7 +11437,7 @@ void CX2GURaven::RSI_OVER_TAKER_DASH_JUMP_COMBO_ZXX_EventProcess()
 	{
 		StateChange( USI_WAIT );
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -15764,7 +15797,7 @@ void CX2GURaven::RBM_Combo_XZZZ_EventProcess()
 			StateChange( USI_JUMP_LANDING );
 		}
 	}		
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -16037,7 +16070,7 @@ void CX2GURaven::SI_A_RRF_GROUND_IMPACT_EventProcess()
 		m_FrameDataFuture.stateParam.bEventFlagList[0] = true;
 	}
 
-	if(  m_pXSkinAnimFuture->GetNowAnimationTime() >= 1.f && m_FrameDataFuture.stateParam.bEventFlagList[0] == true)
+	if(  m_pXSkinAnimFuture->GetNowAnimationTime() >= 0.4f && m_FrameDataFuture.stateParam.bEventFlagList[0] == true)
 	{
 		StateChange( USI_WAIT );
 	}
@@ -16053,7 +16086,7 @@ void CX2GURaven::SI_A_RRF_GROUND_IMPACT_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}		
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -16116,7 +16149,7 @@ void CX2GURaven::SI_SA_RRF_X_CRASH_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}		
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 
@@ -17492,7 +17525,6 @@ void CX2GURaven::RSI_WEAPON_TAKER_COMBO_ZZZXX_EventProcess()
 			StateChange( USI_WAIT );
 		}
 	}
-
 	CommonEventProcess();
 }
 void CX2GURaven::RSI_WEAPON_TAKER_COMBO_ZZZdownX_FrameMove()
@@ -17752,7 +17784,7 @@ void CX2GURaven::RSI_WEAPON_TAKER_DASH_JUMP_COMBO_ZXX_EventProcess()
 			SpecialAttackEventProcess( CX2SkillTree::ASUT_AIR );
 		}	
 	}
-
+	JUMP_CANCEL
 	CommonEventProcess();
 }
 void CX2GURaven::RSI_WEAPON_TAKER_DASH_JUMP_COMBO_ZXX_StateEnd()
@@ -17924,12 +17956,13 @@ void CX2GURaven::RSI_A_RWT_BARRAGE_ATTACK_STAND_FrameMove()
 }
 void CX2GURaven::RSI_A_RWT_BARRAGE_ATTACK_AIR_EventProcess()
 {
-#ifdef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
+#ifndef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
 	{
 		if( true == IsOnSomethingFuture() )
 			StateChange( USI_JUMP_LANDING );
 	}
+	JUMP_CANCEL
 	SKILL_CANCEL_AFTER_FLY( m_fSkillCancelAfterFly )
 #else  RAVEN_LIMIT_AIR_COMBO
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )
@@ -17940,7 +17973,7 @@ void CX2GURaven::RSI_A_RWT_BARRAGE_ATTACK_AIR_EventProcess()
 			StateChange( USI_JUMP_LANDING );
 	}
 #endif RAVEN_LIMIT_AIR_COMBO
-
+	
 	CommonEventProcess();
 }
 void CX2GURaven::RSI_A_RWT_BARRAGE_ATTACK_AIR_FrameMove()
@@ -17997,7 +18030,7 @@ void CX2GURaven::RSI_A_RWT_BARRAGE_ATTACK_AIR_FrameMove()
 	CommonFrameMove();
 }
 
-#ifdef RAVEN_LIMIT_AIR_COMBO			/// 공중 채공 콤보 제한
+#ifndef RAVEN_LIMIT_AIR_COMBO			/// 공중 채공 콤보 제한
 void CX2GURaven::RSI_A_RWT_BARRAGE_ATTACK_AIR_FrameMoveFutrue()
 {
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )		/// 애니메이션 종료 후에는 마지막 모션 그대로 떨어진다.
@@ -18202,7 +18235,7 @@ void CX2GURaven::RSI_SA_RWT_BURSTING_BLADE_ATTACK_StateEnd()
 	CommonStateEnd();
 }
 
-#ifdef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
+#ifndef RAVEN_LIMIT_AIR_COMBO		/// 공중 채공 콤보 제한
 void CX2GURaven::RSI_SA_RWT_BURSTING_BLADE_ATTACK_AIR_FrameMoveFuture()
 {
 	if( m_pXSkinAnimFuture->IsAnimationEnd() == true )		/// 애니메이션 종료 후에는 마지막 모션 그대로 떨어진다.
@@ -18233,7 +18266,7 @@ void CX2GURaven::RSI_SA_RWT_BURSTING_BLADE_ATTACK_AIR_EventProcess()
 			StateChange( USI_JUMP_LANDING );
 	}
 	SKILL_CANCEL_AFTER_FLY( m_fSkillCancelAfterFly )
-
+	
 		CommonEventProcess();
 }
 #endif RAVEN_LIMIT_AIR_COMBO
@@ -19560,7 +19593,6 @@ void CX2GURaven::RVC_DASH_COMBO_ZZZ_EventProcess()
 	{
 		StateChange( USI_WAIT );
 	}
-
 	CommonEventProcess();
 }
 
@@ -21269,6 +21301,7 @@ void CX2GURaven::RVC_SI_A_BLEEDING_SLICER_AIR_EventProcess()
 			StateChange( USI_JUMP_LANDING );
 		}
 	}
+	JUMP_CANCEL
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	SKILL_CANCEL_AFTER_FLY( m_fSkillCancelAfterFly )
@@ -22421,6 +22454,7 @@ void CX2GURaven::RSI_A_RWT_FLAME_SWORD_AIR_EventProcess ()
 			StateChange( USI_JUMP_LANDING );
 		}
 	}
+	JUMP_CANCEL
 	DASH_CANCEL_AFTER( m_fDashCancelAfter )
 	WALK_CANCEL_AFTER( m_fWalkCancelAfter )
 	SKILL_CANCEL_AFTER_FLY( m_fSkillCancelAfterFly )

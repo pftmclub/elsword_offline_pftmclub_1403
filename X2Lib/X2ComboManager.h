@@ -87,6 +87,21 @@ class CX2ComboManager
 		KProtectedType<int>									m_ComboScore;
 		KProtectedType<int>									m_ComboScoreFull;
 
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hHitSeq;
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hLightSeq;
+
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hGoodSeq;
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hNiceSeq;
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hCoolSeq;
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hGreatSeq;
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hPerfectSeq;
+
+		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hSeqTech;
+
+		CKTDGPicChar*										m_pPicCharTechPoint;
+		KProtectedType<int>									m_TechPoint;
+		KProtectedType<int>									m_TechPointFull;
+
 		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hGoodBonus;
 		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hNiceBonus;
 		CKTDGParticleSystem::CParticleEventSequenceHandle 	m_hCoolBonus;
@@ -100,6 +115,7 @@ class CX2ComboManager
 
 #ifdef SERV_DUNGEON_FORCED_EXIT_SYSTEM
 		KProtectedType<int>									m_iUsingSubStageComboScore;		//SubStage 의 ComboScore 를 계산하기 위해 사용하는 인자값
+		KProtectedType<int>									m_iSubStageTechPoint;
 #endif // SERV_DUNGEON_FORCED_EXIT_SYSTEM
 
 

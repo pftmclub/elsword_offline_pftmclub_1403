@@ -22,6 +22,16 @@ CX2ComboManager::CX2ComboManager( float fComboIntervalTime )
 	m_fComboDamage = 0.f;
 	m_fComboCount = 0;
 
+	m_hHitSeq				= INVALID_PARTICLE_SEQUENCE_HANDLE;
+	m_hLightSeq				= INVALID_PARTICLE_SEQUENCE_HANDLE;
+
+	m_hGoodSeq				= INVALID_PARTICLE_SEQUENCE_HANDLE;
+	m_hNiceSeq				= INVALID_PARTICLE_SEQUENCE_HANDLE;
+	m_hCoolSeq				= INVALID_PARTICLE_SEQUENCE_HANDLE;
+	m_hGreatSeq				= INVALID_PARTICLE_SEQUENCE_HANDLE;
+	m_hPerfectSeq			= INVALID_PARTICLE_SEQUENCE_HANDLE;
+
+
 	m_hScoreBonus			= INVALID_PARTICLE_SEQUENCE_HANDLE;
 	m_pScoreBonusPicChar	= NULL;
 	m_ComboScore			= 0;
@@ -52,6 +62,15 @@ CX2ComboManager::~CX2ComboManager(void)
 		g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hInterjection[i] );
 
 	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hComboDamage );
+
+	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hHitSeq );
+	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hLightSeq );
+
+	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hGoodSeq );
+	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hNiceSeq );
+	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hCoolSeq );
+	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hGreatSeq );
+	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hPerfectSeq );
 
 	g_pX2Game->GetMajorParticle()->DestroyInstanceHandle( m_hScoreBonus );
 
@@ -96,6 +115,7 @@ void CX2ComboManager::ResetSubStageComboScore() 				// 현재까지 누적된 ComboScor
 
 void CX2ComboManager::SetMyUnit( bool bMyUnit, CX2GUUser* pUnit )
 {
+/*
 	m_bMyUnit	= bMyUnit;
 	m_pUnit		= pUnit;
 	if( m_bMyUnit == true )
@@ -173,6 +193,187 @@ void CX2ComboManager::SetMyUnit( bool bMyUnit, CX2GUUser* pUnit )
 
 
 	}
+*/
+	m_bMyUnit	= bMyUnit;
+	m_pUnit		= pUnit;
+	if( m_bMyUnit == true )
+	{
+	if( m_hLightSeq == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hLightSeq	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ComboLight", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hLightSeq );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+
+		if( m_hHitSeq == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{	
+			m_hHitSeq = g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ComboHit", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hHitSeq );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+
+		if( m_pPicChar == NULL )
+		{
+			if( NULL != g_pData->GetComboPicChar() )
+			{
+				m_pPicChar = g_pData->GetComboPicChar();
+				m_pPicChar->Clear();
+				g_pKTDXApp->GetDGManager()->RemoveObjectChain( m_pPicChar->GetSeq() );
+				g_pKTDXApp->GetDGManager()->AddObjectChain( m_pPicChar->GetSeq() );
+			}
+
+		}
+		if( m_pPicCharBig == NULL )
+		{
+			if( NULL != g_pData->GetComboPicCharBig() )
+			{
+				m_pPicCharBig = g_pData->GetComboPicCharBig();
+				m_pPicCharBig->Clear();
+				g_pKTDXApp->GetDGManager()->RemoveObjectChain( m_pPicCharBig->GetSeq() );
+				g_pKTDXApp->GetDGManager()->AddObjectChain( m_pPicCharBig->GetSeq() );
+			}
+		}
+		if( m_pPicCharComboDamage == NULL && g_pMain->GetNowStateID() == CX2Main::XS_TRAINING_GAME )
+		{			
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pData->GetUIMajorParticle()->CreateSequence( NULL,  L"GameScorePicChar", 0.0f, 0.0f, 0.0f,  0.0f, 0.0f );
+			pSeq->SetDynamicChain( false );
+			m_pPicCharComboDamage = new CKTDGPicChar( L"HQ_CPC_", pSeq, L"0123456789" );
+			m_pPicCharComboDamage->SetWidth( 15.0f );			
+			m_pPicCharComboDamage->Clear();
+			g_pKTDXApp->GetDGManager()->RemoveObjectChain( m_pPicCharComboDamage->GetSeq() );
+			g_pKTDXApp->GetDGManager()->AddObjectChain( m_pPicCharComboDamage->GetSeq() );
+
+
+			CKTDGParticleSystem::CParticleEventSequence* pSeqMax = g_pData->GetUIMajorParticle()->CreateSequence( NULL,  L"GameScorePicChar", 0.0f, 0.0f, 0.0f,  0.0f, 0.0f );
+			pSeqMax->SetDynamicChain( false );
+			m_pPicCharComboMaxDamage = new CKTDGPicChar( L"HQ_CPC_", pSeqMax, L"0123456789" );
+			m_pPicCharComboMaxDamage->SetWidth( 15.0f );
+			m_pPicCharComboMaxDamage->SetColor( D3DXCOLOR(1.f, 0.f, 0.f, 1.f) );
+			m_pPicCharComboMaxDamage->Clear();
+			g_pKTDXApp->GetDGManager()->RemoveObjectChain( m_pPicCharComboMaxDamage->GetSeq() );
+			g_pKTDXApp->GetDGManager()->AddObjectChain( m_pPicCharComboMaxDamage->GetSeq() );
+		}
+		if( m_hGoodSeq == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hGoodSeq	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ComboGood", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGoodSeq );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+		if( m_hNiceSeq == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hNiceSeq	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ComboNice", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hNiceSeq );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+		if( m_hCoolSeq == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hCoolSeq	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ComboCool", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hCoolSeq );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+
+		}
+		if( m_hGreatSeq == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hGreatSeq	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ComboGreat", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGreatSeq );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+
+		}
+		if( m_hPerfectSeq == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hPerfectSeq	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ComboPerfect", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hPerfectSeq );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+
+		if( m_hScoreBonus == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hScoreBonus	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"ScoreBonus", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hScoreBonus );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+		
+		if( m_pScoreBonusPicChar == NULL )
+		{
+			if( NULL != g_pData->GetScoreBonusPicChar() )
+			{
+				m_pScoreBonusPicChar = g_pData->GetScoreBonusPicChar();
+				m_pScoreBonusPicChar->Clear();
+				g_pKTDXApp->GetDGManager()->RemoveObjectChain( m_pScoreBonusPicChar->GetSeq() );
+				g_pKTDXApp->GetDGManager()->AddObjectChain( m_pScoreBonusPicChar->GetSeq() );
+			}
+		}
+
+		if( m_hGoodBonus == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hGoodBonus	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"GoodBonus", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGoodBonus );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+		if( m_hNiceBonus == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hNiceBonus	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"NiceBonus", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hNiceBonus );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+		if( m_hCoolBonus == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hCoolBonus	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"CoolBonus", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hCoolBonus );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+		if( m_hGreatBonus == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hGreatBonus	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"GreatBonus", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGreatBonus );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+		if( m_hPerfectBonus == INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			m_hPerfectBonus	= g_pX2Game->GetMajorParticle()->CreateSequenceHandle( NULL,  L"PerfectBonus", 0,0,0, 0,0 );
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hPerfectBonus );
+			if( NULL != pSeq )
+			{
+				pSeq->SetDynamicChain( false );
+			}
+		}
+	}
 }
 
 HRESULT CX2ComboManager::OnFrameMove( double fTime, float fElapsedTime )
@@ -183,6 +384,11 @@ HRESULT CX2ComboManager::OnFrameMove( double fTime, float fElapsedTime )
 
 	if( m_pPicChar != NULL )
 		m_pPicChar->OnFrameMove( fElapsedTime );
+	if( m_pPicCharBig != NULL )
+		m_pPicCharBig->OnFrameMove( fElapsedTime );
+
+	if( m_pScoreBonusPicChar != NULL )
+		m_pScoreBonusPicChar->OnFrameMove( fElapsedTime );
 
 		
 	if( m_pPicCharComboDamage != NULL )
@@ -212,7 +418,7 @@ HRESULT CX2ComboManager::OnFrameMove( double fTime, float fElapsedTime )
 		m_ComboScoreFull += m_ComboScore;
 
 		//{{ JHKang / 강정훈 / 2011.02.11 / 던전 랭크 개선 콤보 점수 개선
-#ifndef DUNGEON_RANK_NEW
+#ifdef DUNGEON_RANK_NEW
 		if( m_ComboNum >= 40 )
 		{
 			g_pX2Game->AddGameScore( 300, 0.9f );
@@ -408,7 +614,7 @@ HRESULT CX2ComboManager::OnFrameMove( double fTime, float fElapsedTime )
 		m_fEffTime += fElapsedTime;
 		if( m_fEffTime + m_fComboIntervalTime > 2.0f )
 		{
-			if( m_hComboDamage != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			/*if( m_hComboDamage != INVALID_PARTICLE_SEQUENCE_HANDLE )
 			{
 				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hComboDamage );
 				if( NULL != pSeq )
@@ -419,8 +625,19 @@ HRESULT CX2ComboManager::OnFrameMove( double fTime, float fElapsedTime )
 				{
 					m_hComboDamage = INVALID_PARTICLE_SEQUENCE_HANDLE;
 				}
+			}*/
+			if( m_hHitSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hHitSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+				}
+				else
+				{
+					m_hHitSeq = INVALID_PARTICLE_SEQUENCE_HANDLE;
+				}
 			}
-
 			m_fEffTime = 0.0f;
 		}
 	}
@@ -479,9 +696,18 @@ void CX2ComboManager::AddCombo()
 
 	if( m_bMyUnit == true )
 	{
-		if( m_hComboDamage != INVALID_PARTICLE_SEQUENCE_HANDLE )
+		/*if( m_hComboDamage != INVALID_PARTICLE_SEQUENCE_HANDLE )
 		{
 			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hComboDamage );
+			if( NULL != pSeq )
+			{
+				pSeq->ClearAllParticle();
+				pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+			}
+		}*/
+		if( m_hHitSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+		{
+			CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hHitSeq );
 			if( NULL != pSeq )
 			{
 				pSeq->ClearAllParticle();
@@ -491,8 +717,9 @@ void CX2ComboManager::AddCombo()
 		if( m_pPicChar != NULL )
 		{
 			m_pPicChar->Clear();
+			m_pPicChar->SetWidth( 30.0f );
 
-			const float fFinalDamage = m_pUnit->GetCurrentDamage();
+			/*const float fFinalDamage = m_pUnit->GetCurrentDamage();
 #ifdef ADD_DAMAGE_LOG
 			if( NULL != m_pUnit &&
 				true == m_pUnit->IsMyUnit() )
@@ -513,9 +740,13 @@ void CX2ComboManager::AddCombo()
 				m_fComboDamage += ceil( fFinalDamage / ( 400.f + ( ( iMyLevel + 5 ) * fRate ) ) );
 				m_pPicChar->SetWidth( 30.0f );
 				m_pPicChar->DrawText( (int)m_fComboDamage, D3DXVECTOR3(-100, 327, 0), D3DXVECTOR3(1, 0, 0), CKTDGPicChar::AT_RIGHT );
-			}
+			}*/
 		}
-		if ( m_fComboCount < 1 && 5.f <= m_fComboDamage && 10.f > m_fComboDamage )
+
+		if( m_ComboNum >= 1 )
+				m_pPicChar->DrawText( m_ComboNum, D3DXVECTOR3(-100,307,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_RIGHT );
+
+		/*if ( m_fComboCount < 1 && 5.f <= m_fComboDamage && 10.f > m_fComboDamage )
 		{
 			if( m_hInterjection[0] != INVALID_PARTICLE_SEQUENCE_HANDLE )
 			{
@@ -709,10 +940,183 @@ void CX2ComboManager::AddCombo()
 
 				m_fComboCount = 13;
 			}
+		}*/
+		if( m_ComboNum == 4 )
+		{
+			if( m_hLightSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hLightSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+
+			if( m_hGoodSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				ClearParticleSeqGoodSeries();
+
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGoodSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}		
+			
+			if( m_hScoreBonus != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hScoreBonus );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+			
+			if( m_hGoodBonus != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGoodBonus );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+		}
+
+
+		if( m_ComboNum == 8 )
+		{
+			if( m_hLightSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hLightSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+
+			if( m_hNiceSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				ClearParticleSeqGoodSeries();
+
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hNiceSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}			
+
+			if( m_hNiceBonus != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hNiceBonus );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+		}
+
+		if( m_ComboNum == 14 )
+		{
+			if( m_hLightSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hLightSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+
+			if( m_hCoolSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				ClearParticleSeqGoodSeries();
+
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hCoolSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+
+			if( m_hCoolBonus != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hCoolBonus );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+		}
+		if( m_ComboNum == 25 )
+		{
+			if( m_hLightSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hLightSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+
+			if( m_hGreatSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				ClearParticleSeqGoodSeries();
+
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGreatSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}	
+
+			if( m_hGreatBonus != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hGreatBonus );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+		}
+		if( m_ComboNum == 40 )
+		{
+			if( m_hLightSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hLightSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->ClearAllParticle();
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
+
+			if( m_hPerfectSeq != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				ClearParticleSeqGoodSeries();
+
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hPerfectSeq );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}		
+
+			if( m_hPerfectBonus != INVALID_PARTICLE_SEQUENCE_HANDLE )
+			{
+				CKTDGParticleSystem::CParticleEventSequence* pSeq = g_pX2Game->GetMajorParticle()->GetInstanceSequence( m_hPerfectBonus );
+				if( NULL != pSeq )
+				{
+					pSeq->CreateNewParticle( D3DXVECTOR3(0,0,0) );
+				}
+			}
 		}
 
 		//{{ JHKang / 강정훈 / 2011.02.11 / 던전 랭크 개선 콤보 점수 개선
-#ifdef DUNGEON_RANK_NEW
+#ifndef DUNGEON_RANK_NEW
 		if ( m_ComboNum >= 1 )
 		{
 			const int MAGIC_NUMBER_SECTION = 5;		// 구간 값
@@ -774,7 +1178,7 @@ void CX2ComboManager::AddCombo()
 					m_pScoreBonusPicChar->SetColor( 0xffffff00 );
 				else if( m_ComboScore < 3000 )
 					m_pScoreBonusPicChar->SetColor( 0xffff0000 );
-				m_pScoreBonusPicChar->DrawText( m_ComboScore, D3DXVECTOR3(140,275,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_LEFT );
+				m_pScoreBonusPicChar->DrawText( m_ComboScore, D3DXVECTOR3(140,325,0), D3DXVECTOR3(1,0,0), CKTDGPicChar::AT_LEFT );
 			}
 		}
 #endif DUNGEON_RANK_NEW

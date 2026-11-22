@@ -591,7 +591,15 @@ bool CX2UnitManager::AddUnitTemplet_LUA()
 
 	LUA_GET_VALUE( luaManager, "m_GameMotion0",		pUnitTemplet->m_GameMotion0,		L"" );
 	LUA_GET_VALUE( luaManager, "m_GameMotion1",		pUnitTemplet->m_GameMotion1,		L"" );
-	LUA_GET_VALUE( luaManager, "m_GameMotion2",		pUnitTemplet->m_GameMotion2,		L"" );	
+	LUA_GET_VALUE( luaManager, "m_GameMotion2",		pUnitTemplet->m_GameMotion2,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion3",		pUnitTemplet->m_GameMotion3,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion4",		pUnitTemplet->m_GameMotion4,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion5",		pUnitTemplet->m_GameMotion5,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion6",		pUnitTemplet->m_GameMotion6,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion7",		pUnitTemplet->m_GameMotion7,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion8",		pUnitTemplet->m_GameMotion8,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion9",		pUnitTemplet->m_GameMotion9,		L"" );
+	LUA_GET_VALUE( luaManager, "m_GameMotion10",	pUnitTemplet->m_GameMotion10,		L"" );
 #endif
 
 #ifdef REFORM_ENTRY_POINT	 	// 13-11-11, 진입 구조 개편, kimjh

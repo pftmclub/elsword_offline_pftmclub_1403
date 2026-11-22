@@ -132,7 +132,11 @@ class CX2GUArme_VioletMage : public CX2GUUser
 			AVSI_A_ABM_VITAL_DRAIN_SUCCESS,	/// 바이탈 드레인 성공
 			AVSI_A_ABM_VITAL_DRAIN_FAIL,	/// 바이탈 드레인 실패
 #endif //UPGRADE_SKILL_SYSTEM_2013
-
+			USI_JUMP_UP_RECOVERY,
+			USI_CANCEL_MODE,
+			USI_CAN_NOT_ATTACK_JUMP_DOWN,
+			USI_JUMP_DOWN_CANCEL,			
+			USI_DAMAGE_RAGE,
 			//////////////////////////////////////////////////////////////////////////
 			// 위쪽에 추가해주세요~ 이 아래는 테스트로 추가된 enum 입니다
 
@@ -349,6 +353,7 @@ class CX2GUArme_VioletMage : public CX2GUUser
 		static void			AppendComponentToDeviceList( CKTDXDeviceDataList& listInOut_ );
 		static void			AppendEffectToDeviceList( CKTDXDeviceDataList& listInOut_, CX2DamageManager::EXTRA_DAMAGE_TYPE eDamageType_ );
 #endif	X2OPTIMIZE_GAME_CHARACTER_BACKGROUND_LOAD
+
 
 
 		virtual void		ReInit( bool bRandom = false, int startPosIndex = -1 );
@@ -791,6 +796,31 @@ class CX2GUArme_VioletMage : public CX2GUUser
 		//void AVSI_DAMAGE_GROGGY_FrameMoveFuture();
 		//void AVSI_DAMAGE_GROGGY_EventProcess();
 
+		//virtual void				DetonationStateChange( CX2DamageManager::DamageData* pDamageData );
+		void						DetonationStateChangeStart();
+		void						DetonationStateChangeEnd();
+		void 						DetonationStateChangeFramemove();
+		void 						DetonationStateChangeInit();
+		void 						DetonationStateChangeEventProcess();
+
+		// DamageAirSmall
+		void DamageAirSmallStartFuture();
+		void DamageAirSmallEventProcess();
+
+		// DamageAirDown
+		void DamageAirDownEventProcess();
+
+		// DamageAirDown_INVINCIBLE
+		void DamageAirDownInvincibleEventProcess();		
+
+
+		// DamageAirFall
+		void DamageAirFallEventProcess();
+		// DamageAirUp
+		void DamageAirUpEventProcess();
+		// DamageAirFly
+		void DamageAirFlyEventProcess();
+
 		//AVSI_DAMAGE_SMALL_FRONT
 		void DamageSmallFrontEventProcess();
 
@@ -1193,6 +1223,11 @@ class CX2GUArme_VioletMage : public CX2GUUser
 #endif //UPGRADE_SKILL_SYSTEM_2013
 
 		virtual void COMMON_BUFF_FrameMove();
+
+		virtual int GetComboCancelID() const { return USI_CANCEL_MODE; }
+		virtual int	GetJumpCancelID() const { return USI_JUMP_READY; }
+		virtual int GetManaBreakID() const { return USI_DAMAGE_RAGE; }
+		virtual int GetRecoveryID() const { return USI_JUMP_UP_RECOVERY; }
 
 		//AVSI_SI_AV_COMMON_BUFF
 		void AVSI_SI_AV_COMMON_BUFF_FrameMove();

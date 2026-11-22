@@ -202,6 +202,11 @@ bool CX2OfflineServer::Handler_EGS_UPDATE_PLAY_STATUS_NOT( KOfflineSession& kSes
 	// into every dungeon. See PushRemainingPlayTime for the full story.
 	PushRemainingPlayTime( kSes );
 
+#ifdef SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+	// KDungeonRoom::Tick's CheckEndPlay (DungeonRoom.cpp:250-253) rides the same beat, so a 15 s timeout lands within 3 s of it.
+	TickDungeonContinueEnd( kSes );
+#endif SERV_IRUHADEV_OFFLINE_DUNGEON_CONTINUE_END
+
 	// ...and the auto-party queue's, for the same reason. This packet is the
 	// only regular beat the village has - CX2StateMenu::OnFrameMove pushes it
 	// every three seconds through m_TimerForSendingPlayStatus - so the fake

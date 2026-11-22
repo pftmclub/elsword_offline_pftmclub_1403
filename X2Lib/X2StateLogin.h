@@ -77,9 +77,9 @@ class CX2StateLogin : public CX2State
 		void InitManualLogin();
 
 //{{ kimhc // 2010.5.11 // 사내에서 자동 로그인 할 수 있는 기능
-#ifdef	AUTO_LOGIN_IN_HOUSE
+//#ifdef	AUTO_LOGIN_IN_HOUSE
 		void ReadIDAndPassword();
-#endif	AUTO_LOGIN_IN_HOUSE
+// #endif	AUTO_LOGIN_IN_HOUSE
 //}} kimhc // 2010.5.11 // 사내에서 자동 로그인 할 수 있는 기능
 
 		CKTDGUIDialogType	m_pDLGLoginBack;
